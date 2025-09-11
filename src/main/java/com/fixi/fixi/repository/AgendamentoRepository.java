@@ -25,13 +25,15 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> 
                     p.estado,
                     c.nome,
                     a.dataAgendamento,
-                    a.periodo
+                    a.periodo,
+                    a.status
                 )
                 from Agendamento a
                   join a.prestador p
                   join p.categoria c
                 where a.cliente.id = :clienteId
-                and a.status = com.fixi.fixi.model.StatusAgendamento.ACEITO
+                and a.status in (com.fixi.fixi.model.StatusAgendamento.ACEITO,\s
+                                       com.fixi.fixi.model.StatusAgendamento.PENDENTE)
                 order by a.dataAgendamento desc
             """)
 

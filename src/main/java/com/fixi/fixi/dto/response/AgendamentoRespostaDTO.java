@@ -1,6 +1,7 @@
 package com.fixi.fixi.dto.response;
 
 import com.fixi.fixi.model.Periodo;
+import com.fixi.fixi.model.StatusAgendamento;
 
 import java.time.LocalDate;
 
@@ -14,6 +15,7 @@ public record AgendamentoRespostaDTO(
         String estadoPrestador,
         String categoriaPrestador,
         LocalDate data,
-        Periodo periodo
+        Periodo periodo,
+        StatusAgendamento statusAgendamento
 ) {
 }
