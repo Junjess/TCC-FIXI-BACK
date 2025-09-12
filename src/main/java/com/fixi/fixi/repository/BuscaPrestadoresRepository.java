@@ -10,16 +10,17 @@ import java.util.List;
 public interface BuscaPrestadoresRepository extends JpaRepository<Prestador, Long> {
 
     @Query("""
-        select p
-        from Prestador p
-        left join fetch p.categoria c
-        where p.estado = :estado
-          and ( :q is null
-                or lower(p.nome) like lower(concat('%', :q, '%'))
-                or lower(p.descricao) like lower(concat('%', :q, '%')) )
-          and ( :categoriasVazia = true or c.id in :categorias )
-        order by p.nome asc
-    """)
+                select p
+                from Prestador p
+                left join fetch p.categoria c
+                where p.estado = :estado
+                  and ( :q is null
+                        or lower(p.nome) like lower(concat('%', :q, '%'))
+                        or lower(p.descricao) like lower(concat('%', :q, '%'))
+                        or lower(c.nome) like lower(concat('%', :q, '%')) )
+                  and ( :categoriasVazia = true or c.id in :categorias )
+                order by p.nome asc
+            """)
     List<Prestador> findFiltradosSemMedia(
             @Param("estado") String estado,
             @Param("q") String q,

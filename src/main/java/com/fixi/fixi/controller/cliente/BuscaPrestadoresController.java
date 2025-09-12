@@ -1,6 +1,7 @@
 package com.fixi.fixi.controller.cliente;
 
 import com.fixi.fixi.dto.response.BuscaPrestadoresRespostaDTO;
+import com.fixi.fixi.dto.response.PrestadorDetalhesResponseDTO;
 import com.fixi.fixi.service.BuscaPrestadoresService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -27,4 +28,11 @@ public class BuscaPrestadoresController{
     ) {
         return buscarService.listarPrestadoresFiltrados(idCliente, q, categoriasIds);
     }
+
+    @GetMapping("/perfil/{id}")
+    public PrestadorDetalhesResponseDTO buscarPrestadorPorId(@PathVariable Long id) {
+        return buscarService.buscarPrestadorPorId(id);
+    }
+
+
 }

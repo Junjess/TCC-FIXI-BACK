@@ -1,6 +1,8 @@
 package com.fixi.fixi.service;
 
+import com.fixi.fixi.dto.response.AvaliacaoResponseDTO;
 import com.fixi.fixi.dto.response.BuscaPrestadoresRespostaDTO;
+import com.fixi.fixi.dto.response.PrestadorDetalhesResponseDTO;
 import com.fixi.fixi.model.Avaliacao;
 import com.fixi.fixi.model.Prestador;
 import com.fixi.fixi.repository.AvaliacaoRepository;
@@ -68,4 +70,43 @@ public class BuscaPrestadoresService {
             );
         }).collect(Collectors.toList());
     }
+
+    public PrestadorDetalhesResponseDTO buscarPrestadorPorId(Long id) {
+        Prestador prestador = buscaRepo.findById(id)
+                .orElseThrow(() -> new RuntimeException("Prestador não encontrado"));
+
+        // Busca todas as avaliações do prestador
+        List<Avaliacao> avaliacoes = avaliacaoRepository.findByPrestadorId(prestador.getId());
+
+        // Converte para DTO
+        List<AvaliacaoResponseDTO> avaliacoesDTO = avaliacoes.stream()
+                .map(a -> new AvaliacaoResponseDTO(
+                        a.getNota(),                 // Double
+                        a.getCliente().getNome()     // Nome do cliente
+                ))
+                .collect(Collectors.toList());
+
+        // Calcula a média
+        Double media = avaliacoes.isEmpty()
+                ? 0.0
+                : avaliacoes.stream()
+                .mapToDouble(Avaliacao::getNota)
+                .average()
+                .orElse(0.0);
+
+        // Retorna os dados completos
+        return new PrestadorDetalhesResponseDTO(
+                prestador.getId(),
+                prestador.getNome(),
+                prestador.getTelefone(),
+                prestador.getFoto(),
+                prestador.getCidade(),
+                prestador.getEstado(),
+                prestador.getDescricao(),
+                prestador.getCategoria() != null ? prestador.getCategoria().getNome() : "Sem categoria",
+                media,
+                avaliacoesDTO
+        );
+    }
+
 }
