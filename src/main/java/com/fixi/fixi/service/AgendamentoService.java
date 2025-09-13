@@ -31,6 +31,7 @@ public class AgendamentoService {
         this.prestadorRepository = prestadorRepository;
     }
 
+    // ✅ Agora a flag "avaliado" já vem direto da query no Repository
     @Transactional
     public List<AgendamentoRespostaDTO> listarPorCliente(Long clienteId) {
         return agendamentoRepository.findResumoByClienteId(clienteId);
@@ -63,7 +64,8 @@ public class AgendamentoService {
                         a.getPrestador().getCategoria().getNome(),
                         a.getDataAgendamento(),
                         a.getPeriodo(),
-                        a.getStatus()
+                        a.getStatus(),
+                        false // 👈 para prestador não faz sentido trazer "avaliado"
                 ))
                 .toList();
     }
@@ -113,7 +115,8 @@ public class AgendamentoService {
                 prestador.getCategoria().getNome(),
                 salvo.getDataAgendamento(),
                 salvo.getPeriodo(),
-                salvo.getStatus()
+                salvo.getStatus(),
+                false // 👈 agendamento recém-criado nunca é avaliado
         );
     }
 }

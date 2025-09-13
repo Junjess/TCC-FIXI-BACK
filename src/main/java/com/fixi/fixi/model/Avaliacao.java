@@ -18,14 +18,14 @@ public class Avaliacao {
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "prestador_id", nullable = false)
-    private Prestador prestador;
+    @JoinColumn(name = "agendamento_id", nullable = false)
+    private Agendamento agendamento;
 
-    @ManyToOne
-    @JoinColumn(name = "cliente_id", nullable = false)
-    private Cliente cliente;
 
     @Column(nullable = false)
     private Double nota; // valor de 0 a 5 (pode aceitar casas decimais como 4.5)
+
+    @Column(nullable = false)
+    private String descricao;
 
 }

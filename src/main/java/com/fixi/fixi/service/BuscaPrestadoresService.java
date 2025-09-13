@@ -44,7 +44,7 @@ public class BuscaPrestadoresService {
 
         // 2) Para cada prestador, buscar avaliações e calcular a média
         return prestadores.stream().map(p -> {
-            List<Avaliacao> avaliacoes = avaliacaoRepository.findByPrestadorId(p.getId());
+            List<Avaliacao> avaliacoes = avaliacaoRepository.findByAgendamentoPrestadorId(p.getId());
 
             Double media = avaliacoes.isEmpty()
                     ? 0.0
@@ -76,13 +76,14 @@ public class BuscaPrestadoresService {
                 .orElseThrow(() -> new RuntimeException("Prestador não encontrado"));
 
         // Busca todas as avaliações do prestador
-        List<Avaliacao> avaliacoes = avaliacaoRepository.findByPrestadorId(prestador.getId());
+        List<Avaliacao> avaliacoes = avaliacaoRepository.findByAgendamentoPrestadorId(prestador.getId());
 
         // Converte para DTO
         List<AvaliacaoResponseDTO> avaliacoesDTO = avaliacoes.stream()
                 .map(a -> new AvaliacaoResponseDTO(
                         a.getNota(),                 // Double
-                        a.getCliente().getNome()     // Nome do cliente
+                        a.getAgendamento().getCliente().getNome(),
+                        a.getDescricao()
                 ))
                 .collect(Collectors.toList());
 

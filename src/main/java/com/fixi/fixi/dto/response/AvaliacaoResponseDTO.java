@@ -10,4 +10,5 @@ import lombok.Setter;
 public class AvaliacaoResponseDTO {
     private Double nota;
     private String clienteNome;
+    private String descricao;
 }
