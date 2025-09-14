@@ -22,8 +22,49 @@ public class AgendamentoRespostaDTO {
     private LocalDate data;
     private String periodo;
     private String statusAgendamento;
-    private boolean avaliado; // ✅ novo campo
+    private boolean avaliado;
+    private Double nota;
+    private String descricaoAvaliacao;
 
+    /**
+     * Construtor completo (quando também queremos nota e descrição de avaliação).
+     */
+    public AgendamentoRespostaDTO(
+            Long idAgendamento,
+            Long idPrestador,
+            String nomePrestador,
+            String telefonePrestador,
+            String fotoPrestador,
+            String cidadePrestador,
+            String estadoPrestador,
+            String categoriaPrestador,
+            LocalDate data,
+            Periodo periodo,
+            StatusAgendamento status,
+            boolean avaliado,
+            Double nota,
+            String descricaoAvaliacao
+    ) {
+        this.idAgendamento = idAgendamento;
+        this.idPrestador = idPrestador;
+        this.nomePrestador = nomePrestador;
+        this.telefonePrestador = telefonePrestador;
+        this.fotoPrestador = fotoPrestador;
+        this.cidadePrestador = cidadePrestador;
+        this.estadoPrestador = estadoPrestador;
+        this.categoriaPrestador = categoriaPrestador;
+        this.data = data;
+        this.periodo = periodo.name();
+        this.statusAgendamento = status.name();
+        this.avaliado = avaliado;
+        this.nota = nota;
+        this.descricaoAvaliacao = descricaoAvaliacao;
+    }
+
+    /**
+     * Construtor reduzido (sem avaliação).
+     * Útil em listarPorPrestador e solicitarAgendamento.
+     */
     public AgendamentoRespostaDTO(
             Long idAgendamento,
             Long idPrestador,
@@ -50,5 +91,7 @@ public class AgendamentoRespostaDTO {
         this.periodo = periodo.name();
         this.statusAgendamento = status.name();
         this.avaliado = avaliado;
+        this.nota = null;
+        this.descricaoAvaliacao = null;
     }
 }

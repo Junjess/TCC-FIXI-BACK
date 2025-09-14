@@ -28,21 +28,34 @@ public class BuscaPrestadoresService {
         this.avaliacaoRepository = avaliacaoRepository;
     }
 
-    public List<BuscaPrestadoresRespostaDTO> listarPrestadoresFiltrados(Long idCliente, String q, List<Long> categoriasIds) {
+    public List<BuscaPrestadoresRespostaDTO> listarPrestadoresFiltrados(
+            Long idCliente,
+            String q,
+            List<Long> categoriasIds,
+            String cidade,
+            String estado
+    ) {
+        // 🔹 Se não veio cidade/estado no request, pega do cliente logado
         var cliente = clienteRepository.findById(idCliente)
                 .orElseThrow(() -> new RuntimeException("Cliente não encontrado"));
 
-        String estadoCliente = cliente.getEstado();
+        String cidadeFiltro = (cidade != null && !cidade.isBlank()) ? cidade : cliente.getCidade();
+        String estadoFiltro = (estado != null && !estado.isBlank()) ? estado : cliente.getEstado();
+
         boolean categoriasVazia = (categoriasIds == null || categoriasIds.isEmpty());
         List<Long> categoriasParam = categoriasVazia ? List.of(-1L) : categoriasIds;
         String qNorm = (q == null || q.isBlank()) ? null : q.trim();
 
         // 1) Busca apenas os prestadores filtrados (sem média)
         List<Prestador> prestadores = buscaRepo.findFiltradosSemMedia(
-                estadoCliente, qNorm, categoriasParam, categoriasVazia
+                cidadeFiltro,
+                estadoFiltro,
+                qNorm,
+                categoriasParam,
+                categoriasVazia
         );
 
-        // 2) Para cada prestador, buscar avaliações e calcular a média
+        // 2) Calcula média das avaliações
         return prestadores.stream().map(p -> {
             List<Avaliacao> avaliacoes = avaliacaoRepository.findByAgendamentoPrestadorId(p.getId());
 

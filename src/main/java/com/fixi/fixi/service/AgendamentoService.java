@@ -31,12 +31,17 @@ public class AgendamentoService {
         this.prestadorRepository = prestadorRepository;
     }
 
-    // ✅ Agora a flag "avaliado" já vem direto da query no Repository
+    /**
+     * Lista agendamentos de um cliente, já incluindo avaliação (se houver).
+     */
     @Transactional
     public List<AgendamentoRespostaDTO> listarPorCliente(Long clienteId) {
         return agendamentoRepository.findResumoByClienteId(clienteId);
     }
 
+    /**
+     * Cancela um agendamento de um cliente.
+     */
     @Transactional
     public void cancelarAgendamento(Long agendamentoId, Long clienteId) {
         Agendamento ag = agendamentoRepository.findById(agendamentoId)
@@ -49,6 +54,10 @@ public class AgendamentoService {
         agendamentoRepository.delete(ag);
     }
 
+    /**
+     * Lista a agenda de um prestador em um intervalo de datas.
+     * Aqui não faz sentido trazer avaliação, então usamos o construtor reduzido do DTO.
+     */
     @Transactional
     public List<AgendamentoRespostaDTO> listarPorPrestador(Long prestadorId, LocalDate from, LocalDate to) {
         return agendamentoRepository.findByPrestadorIdAndDataAgendamentoBetween(prestadorId, from, to)
@@ -65,11 +74,15 @@ public class AgendamentoService {
                         a.getDataAgendamento(),
                         a.getPeriodo(),
                         a.getStatus(),
-                        false // 👈 para prestador não faz sentido trazer "avaliado"
+                        false // 👈 prestador não precisa de avaliação aqui
                 ))
                 .toList();
     }
 
+    /**
+     * Solicita um novo agendamento (cliente → prestador).
+     * Avaliação nunca existe nesse momento, então usamos o construtor reduzido.
+     */
     @Transactional
     public AgendamentoRespostaDTO solicitarAgendamento(
             Long prestadorId,
@@ -82,7 +95,7 @@ public class AgendamentoService {
         var cliente = clienteRepository.findById(clienteId)
                 .orElseThrow(() -> new RuntimeException("Cliente não encontrado"));
 
-        // ✅ Nova regra: cliente já tem agendamento neste dia com o mesmo prestador?
+        // Regra: cliente já tem agendamento neste dia com o mesmo prestador?
         boolean mesmoDiaPrestador = agendamentoRepository.existsByClienteIdAndPrestadorIdAndDataAgendamentoAndStatusIn(
                 clienteId,
                 prestadorId,
@@ -116,7 +129,8 @@ public class AgendamentoService {
                 salvo.getDataAgendamento(),
                 salvo.getPeriodo(),
                 salvo.getStatus(),
-                false // 👈 agendamento recém-criado nunca é avaliado
+                false // recém-criado = não avaliado
         );
     }
 }
+

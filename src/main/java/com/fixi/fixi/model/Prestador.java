@@ -25,10 +25,13 @@ public class Prestador {
     @Column(nullable = false, length = 255)
     private String senha;
 
-    @Column(length = 120)
+    @Column(length = 9, nullable = false)
+    private String cep;
+
+    @Column(length = 100, nullable = false)
     private String cidade;
 
-    @Column(length = 2)
+    @Column(length = 2, nullable = false)
     private String estado;
 
     @Column(length = 255)
@@ -37,7 +40,7 @@ public class Prestador {
     @Column(length = 40)
     private String telefone;
 
-    @Column(length = 40)
+    @Column(length = 255)
     private String descricao;
 
     @ManyToOne(optional = false, fetch = FetchType.LAZY)

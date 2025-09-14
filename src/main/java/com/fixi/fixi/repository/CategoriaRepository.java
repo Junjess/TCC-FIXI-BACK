@@ -12,4 +12,3 @@ public interface CategoriaRepository extends JpaRepository<Categoria, Integer> {
     Categoria findByNome(String nome);
     List<Categoria> findAllByOrderByNomeAsc();
 }
-

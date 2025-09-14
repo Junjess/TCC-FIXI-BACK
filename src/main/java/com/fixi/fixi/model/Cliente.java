@@ -25,13 +25,16 @@ public class Cliente {
     @Column(nullable = false, length = 255)
     private String senha;
 
-    @Column(length = 120)
+    @Column(length = 9, nullable = false)
+    private String cep;
+
+    @Column(length = 100, nullable = false)
     private String cidade;
 
-    @Column(length = 2)
+    @Column(length = 2, nullable = false)
     private String estado;
 
-    @Column(length = 255)
+    @Column(columnDefinition = "TEXT")
     private String foto;
 
     @Column(length = 40)

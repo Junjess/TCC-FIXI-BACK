@@ -15,6 +15,7 @@ import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -29,12 +30,9 @@ public class AutenticacaoService {
     @Autowired
     private CategoriaRepository categoriaRepository;
 
+    @Autowired
+    private ViaCepService viaCepService; // 🔹 serviço para buscar cidade/estado pelo CEP
 
-    public AutenticacaoService(ClienteRepository clienteRepository, PrestadorRepository prestadorRepository, CategoriaRepository categoriaRepository) {
-        this.clienteRepository = clienteRepository;
-        this.prestadorRepository = prestadorRepository;
-        this.categoriaRepository = categoriaRepository;
-    }
 
     public UsuarioRespostaDTO loginCliente(LoginRequest loginRequest) {
         Cliente cliente = clienteRepository.findByEmail(loginRequest.getEmail());
@@ -43,17 +41,15 @@ public class AutenticacaoService {
             throw new RuntimeException("Cliente não encontrado");
         }
 
-        // Verifica senha usando BCrypt
         if (!BCrypt.checkpw(loginRequest.getSenha(), cliente.getSenha())) {
             throw new RuntimeException("Senha incorreta");
         }
 
-        // Retorna DTO de resposta
         return new UsuarioRespostaDTO(
                 cliente.getId(),
                 cliente.getNome(),
-                cliente.getEmail()
-
+                cliente.getEmail(),
+                cliente.getFoto()
         );
     }
 
@@ -64,80 +60,90 @@ public class AutenticacaoService {
             throw new RuntimeException("Prestador não encontrado");
         }
 
-        // Verifica senha usando BCrypt
         if (!BCrypt.checkpw(loginRequest.getSenha(), prestador.getSenha())) {
             throw new RuntimeException("Senha incorreta");
         }
 
-        // Retorna DTO de resposta
         return new UsuarioRespostaDTO(
                 prestador.getId(),
                 prestador.getNome(),
-                prestador.getEmail()
+                prestador.getEmail(),
+                prestador.getFoto()
         );
     }
 
     public UsuarioRespostaDTO cadastroCliente(RegistroClienteRequest cadastroRequest) {
-        Optional<Cliente> clienteExistente = Optional.ofNullable(clienteRepository.findByEmail(cadastroRequest.getEmail()));
+        Optional<Cliente> clienteExistente =
+                Optional.ofNullable(clienteRepository.findByEmail(cadastroRequest.getEmail()));
         if (clienteExistente.isPresent()) {
             throw new RuntimeException("Email já cadastrado");
         }
 
-        //Cria o cliente a partir do request
+        // Busca cidade e estado via ViaCEP
+        Map<String, Object> dadosCep = viaCepService.buscarCep(cadastroRequest.getCep());
+        if (dadosCep == null || dadosCep.containsKey("erro")) {
+            throw new RuntimeException("CEP inválido ou não encontrado");
+        }
+
         Cliente cliente = new Cliente();
         cliente.setNome(cadastroRequest.getNome());
         cliente.setEmail(cadastroRequest.getEmail());
 
-        // Criptografa a senha
         BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
         cliente.setSenha(encoder.encode(cadastroRequest.getSenha()));
 
         cliente.setTelefone(cadastroRequest.getTelefone());
-        cliente.setCidade(cadastroRequest.getCidade());
-        cliente.setEstado(cadastroRequest.getEstado());
+        cliente.setCep(cadastroRequest.getCep());
+        cliente.setCidade((String) dadosCep.get("localidade"));
+        cliente.setEstado((String) dadosCep.get("uf"));
 
-        //Salva no banco
         cliente = clienteRepository.save(cliente);
 
-        //Retorna DTO de resposta
         return new UsuarioRespostaDTO(
                 cliente.getId(),
                 cliente.getNome(),
-                cliente.getEmail()
+                cliente.getEmail(),
+                cliente.getFoto()
         );
     }
 
     public UsuarioRespostaDTO cadastroPrestador(RegistroPrestadorRequest cadastroRequest) {
-        Optional<Prestador> prestadorExistente = Optional.ofNullable(prestadorRepository.findByEmail(cadastroRequest.getEmail()));
+        Optional<Prestador> prestadorExistente =
+                Optional.ofNullable(prestadorRepository.findByEmail(cadastroRequest.getEmail()));
         if (prestadorExistente.isPresent()) {
             throw new RuntimeException("Email já cadastrado");
         }
 
-        //Cria o prestador a partir do request
+        // Busca categoria pelo nome
+        Categoria categoria = categoriaRepository.findByNome(cadastroRequest.getTipoServico());
+        if (categoria == null) {
+            throw new RuntimeException("Categoria não encontrada: " + cadastroRequest.getTipoServico());
+        }
+
         Prestador prestador = new Prestador();
         prestador.setNome(cadastroRequest.getNome());
         prestador.setEmail(cadastroRequest.getEmail());
 
-        Categoria categoria = categoriaRepository.findByNome(cadastroRequest.getTipoServico());
-
-        // Criptografa a senha
         BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
         prestador.setSenha(encoder.encode(cadastroRequest.getSenha()));
 
         prestador.setTelefone(cadastroRequest.getTelefone());
-        prestador.setCidade(cadastroRequest.getCidade());
-        prestador.setEstado(cadastroRequest.getEstado());
+        prestador.setCep(cadastroRequest.getCep());
+
+        Map<String, Object> dadosCep = viaCepService.buscarCep(cadastroRequest.getCep());
+        prestador.setCidade((String) dadosCep.get("localidade"));
+        prestador.setEstado((String) dadosCep.get("uf"));
+
         prestador.setCategoria(categoria);
         prestador.setDescricao(cadastroRequest.getDescricao());
 
-        //Salva no banco
         prestador = prestadorRepository.save(prestador);
 
-        //Retorna DTO de resposta
         return new UsuarioRespostaDTO(
                 prestador.getId(),
                 prestador.getNome(),
-                prestador.getEmail()
+                prestador.getEmail(),
+                prestador.getFoto()
         );
     }
 }
