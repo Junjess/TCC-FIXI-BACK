@@ -1,56 +1,69 @@
 package com.fixi.fixi.repository;
 
-import com.fixi.fixi.dto.response.AgendamentoRespostaDTO;
 import com.fixi.fixi.model.Agendamento;
 import com.fixi.fixi.model.StatusAgendamento;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
 import java.util.List;
 
+@Repository
 public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> {
 
     /**
-     * Histórico de agendamentos de um cliente, incluindo avaliação (se houver).
+     * Histórico de agendamentos de um cliente (carregando prestador, cliente, categorias e avaliação).
      */
     @Query("""
-        select new com.fixi.fixi.dto.response.AgendamentoRespostaDTO(
-            a.id,
-            p.id,
-            p.nome,
-            p.telefone,
-            p.foto,
-            p.cidade,
-            p.estado,
-            p.categoria.nome,
-            a.dataAgendamento,
-            a.periodo,
-            a.status,
-            case when av.id is not null then true else false end,
-            av.nota,
-            av.descricao
-        )
-        from Agendamento a
-        join a.prestador p
-        left join Avaliacao av on av.agendamento.id = a.id
-        where a.cliente.id = :clienteId
-    """)
-    List<AgendamentoRespostaDTO> findResumoByClienteId(@Param("clienteId") Long clienteId);
+            select distinct a
+            from Agendamento a
+            join fetch a.prestador p
+            join fetch a.cliente c
+            left join fetch a.avaliacao av
+            left join fetch p.categorias pc
+            left join fetch pc.categoria ca
+            where c.id = :clienteId
+            """)
+    List<Agendamento> findHistoricoByClienteId(@Param("clienteId") Long clienteId);
 
     /**
-     * Agenda de um prestador em um intervalo de datas.
+     * Lista agendamentos aceitos de um prestador (carregando cliente, categorias e avaliação).
      */
+    @Query("""
+            select distinct a
+            from Agendamento a
+            join fetch a.prestador p
+            join fetch a.cliente c
+            left join fetch a.avaliacao av
+            left join fetch p.categorias pc
+            left join fetch pc.categoria ca
+            where p.id = :prestadorId
+              and a.status = com.fixi.fixi.model.StatusAgendamento.ACEITO
+            """)
+    List<Agendamento> findAceitosByPrestadorId(@Param("prestadorId") Long prestadorId);
+
+    /**
+     * Lista agendamentos de um prestador em intervalo de datas (carregando categorias).
+     */
+    @Query("""
+            select distinct a
+            from Agendamento a
+            join fetch a.prestador p
+            left join fetch p.categorias pc
+            left join fetch pc.categoria ca
+            where p.id = :prestadorId
+              and a.dataAgendamento between :from and :to
+            """)
     List<Agendamento> findByPrestadorIdAndDataAgendamentoBetween(
-            Long prestadorId,
-            LocalDate from,
-            LocalDate to
+            @Param("prestadorId") Long prestadorId,
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to
     );
 
     /**
-     * Verifica se já existe agendamento de um cliente com um prestador em uma data,
-     * considerando status (ex: PENDENTE ou ACEITO).
+     * Verifica se já existe agendamento ativo entre cliente e prestador no mesmo dia.
      */
     boolean existsByClienteIdAndPrestadorIdAndDataAgendamentoAndStatusIn(
             Long clienteId,

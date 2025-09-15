@@ -17,10 +17,9 @@ public class Avaliacao {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
-    @JoinColumn(name = "agendamento_id", nullable = false)
+    @OneToOne
+    @JoinColumn(name = "agendamento_id", nullable = false, unique = true)
     private Agendamento agendamento;
-
 
     @Column(nullable = false)
     private Double nota; // valor de 0 a 5 (pode aceitar casas decimais como 4.5)

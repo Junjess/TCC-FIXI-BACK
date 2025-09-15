@@ -1,4 +1,4 @@
-package com.fixi.fixi.controller.cliente;
+package com.fixi.fixi.controller.prestador;
 
 import com.fixi.fixi.dto.response.AgendamentoRespostaDTO;
 import com.fixi.fixi.model.Periodo;
@@ -10,39 +10,20 @@ import java.time.LocalDate;
 import java.util.List;
 
 @RestController
+@RequestMapping("/prestadores")
 @CrossOrigin(origins = "http://localhost:3000")
-public class AgendamentoController {
+public class AgendamentoPrestadorController {
 
     private final AgendamentoService agendamentoService;
 
-    public AgendamentoController(AgendamentoService agendamentoService) {
+    public AgendamentoPrestadorController(AgendamentoService agendamentoService) {
         this.agendamentoService = agendamentoService;
-    }
-
-    /**
-     * Histórico de agendamentos de um cliente, incluindo avaliações.
-     */
-    @GetMapping("/clientes/{id}/agendamentos")
-    public List<AgendamentoRespostaDTO> listarAgendamentosCliente(@PathVariable("id") Long clienteId) {
-        return agendamentoService.listarPorCliente(clienteId);
-    }
-
-    /**
-     * Cancela um agendamento de um cliente.
-     */
-    @DeleteMapping("/clientes/{clienteId}/agendamentos/{id}/cancelar")
-    public ResponseEntity<Void> cancelarAgendamento(
-            @PathVariable Long clienteId,
-            @PathVariable Long id
-    ) {
-        agendamentoService.cancelarAgendamento(id, clienteId);
-        return ResponseEntity.noContent().build();
     }
 
     /**
      * Lista agenda de um prestador em um intervalo de datas.
      */
-    @GetMapping("/prestadores/{id}/agenda")
+    @GetMapping("/{id}/agenda")
     public List<AgendamentoRespostaDTO> listarAgendaPrestador(
             @PathVariable Long id,
             @RequestParam LocalDate from,
@@ -54,7 +35,7 @@ public class AgendamentoController {
     /**
      * Solicita um novo agendamento entre cliente e prestador.
      */
-    @PostMapping("/prestadores/{id}/agendamentos")
+    @PostMapping("/{id}/agendamentos")
     public AgendamentoRespostaDTO solicitarAgendamento(
             @PathVariable Long id,
             @RequestParam Long clienteId,
@@ -62,5 +43,26 @@ public class AgendamentoController {
             @RequestParam Periodo periodo
     ) {
         return agendamentoService.solicitarAgendamento(id, clienteId, data, periodo);
+    }
+
+    /**
+     * Lista apenas agendamentos ACEITOS de um prestador.
+     * Exemplo: GET /prestadores/5/agendamentos/aceitos
+     */
+    @GetMapping("/{id}/agendamentos/aceitos")
+    public List<AgendamentoRespostaDTO> listarAceitos(@PathVariable Long id) {
+        return agendamentoService.listarAceitosPorPrestador(id);
+    }
+
+    /**
+     * Prestador cancela um agendamento
+     */
+    @PutMapping("/{prestadorId}/agendamentos/{id}/cancelar")
+    public ResponseEntity<Void> cancelarPorPrestador(
+            @PathVariable Long prestadorId,
+            @PathVariable Long id
+    ) {
+        agendamentoService.cancelarAgendamentoPrestador(id, prestadorId);
+        return ResponseEntity.noContent().build();
     }
 }

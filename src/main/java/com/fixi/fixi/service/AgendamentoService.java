@@ -32,56 +32,65 @@ public class AgendamentoService {
     }
 
     /**
-     * Lista agendamentos de um cliente, já incluindo avaliação (se houver).
+     * Lista agendamentos de um cliente.
      */
     @Transactional
     public List<AgendamentoRespostaDTO> listarPorCliente(Long clienteId) {
-        return agendamentoRepository.findResumoByClienteId(clienteId);
+        return agendamentoRepository.findHistoricoByClienteId(clienteId)
+                .stream()
+                .map(this::toDTO)
+                .toList();
     }
 
     /**
-     * Cancela um agendamento de um cliente.
+     * Cliente cancela agendamento
      */
     @Transactional
-    public void cancelarAgendamento(Long agendamentoId, Long clienteId) {
+    public void cancelarAgendamentoCliente(Long agendamentoId, Long clienteId) {
+        cancelarAgendamento(agendamentoId, clienteId, false);
+    }
+
+    /**
+     * Prestador cancela agendamento
+     */
+    @Transactional
+    public void cancelarAgendamentoPrestador(Long agendamentoId, Long prestadorId) {
+        cancelarAgendamento(agendamentoId, prestadorId, true);
+    }
+
+    /**
+     * Método genérico que aplica as regras de cancelamento.
+     */
+    private void cancelarAgendamento(Long agendamentoId, Long usuarioId, boolean isPrestador) {
         Agendamento ag = agendamentoRepository.findById(agendamentoId)
                 .orElseThrow(() -> new RuntimeException("Agendamento não encontrado"));
 
-        if (!ag.getCliente().getId().equals(clienteId)) {
-            throw new RuntimeException("Operação não permitida");
+        if (isPrestador && !ag.getPrestador().getId().equals(usuarioId)) {
+            throw new RuntimeException("Prestador não autorizado a cancelar este agendamento");
+        }
+        if (!isPrestador && !ag.getCliente().getId().equals(usuarioId)) {
+            throw new RuntimeException("Cliente não autorizado a cancelar este agendamento");
         }
 
-        agendamentoRepository.delete(ag);
+        ag.setStatus(StatusAgendamento.CANCELADO);
+        ag.setCanceladoPor(isPrestador ? "PRESTADOR" : "CLIENTE");
+
+        agendamentoRepository.save(ag);
     }
 
     /**
      * Lista a agenda de um prestador em um intervalo de datas.
-     * Aqui não faz sentido trazer avaliação, então usamos o construtor reduzido do DTO.
      */
     @Transactional
     public List<AgendamentoRespostaDTO> listarPorPrestador(Long prestadorId, LocalDate from, LocalDate to) {
         return agendamentoRepository.findByPrestadorIdAndDataAgendamentoBetween(prestadorId, from, to)
                 .stream()
-                .map(a -> new AgendamentoRespostaDTO(
-                        a.getId(),
-                        a.getPrestador().getId(),
-                        a.getPrestador().getNome(),
-                        a.getPrestador().getTelefone(),
-                        a.getPrestador().getFoto(),
-                        a.getPrestador().getCidade(),
-                        a.getPrestador().getEstado(),
-                        a.getPrestador().getCategoria().getNome(),
-                        a.getDataAgendamento(),
-                        a.getPeriodo(),
-                        a.getStatus(),
-                        false // 👈 prestador não precisa de avaliação aqui
-                ))
+                .map(this::toDTO)
                 .toList();
     }
 
     /**
      * Solicita um novo agendamento (cliente → prestador).
-     * Avaliação nunca existe nesse momento, então usamos o construtor reduzido.
      */
     @Transactional
     public AgendamentoRespostaDTO solicitarAgendamento(
@@ -117,20 +126,44 @@ public class AgendamentoService {
 
         var salvo = agendamentoRepository.save(ag);
 
+        return toDTO(salvo);
+    }
+
+    /**
+     * Lista apenas agendamentos aceitos de um prestador.
+     */
+    @Transactional
+    public List<AgendamentoRespostaDTO> listarAceitosPorPrestador(Long prestadorId) {
+        return agendamentoRepository.findAceitosByPrestadorId(prestadorId)
+                .stream()
+                .map(this::toDTO)
+                .toList();
+    }
+
+    /**
+     * Converte Agendamento → DTO
+     */
+    private AgendamentoRespostaDTO toDTO(Agendamento a) {
+        var categorias = a.getPrestador().getCategorias().stream()
+                .map(pc -> pc.getCategoria().getNome())
+                .toList();
+
         return new AgendamentoRespostaDTO(
-                salvo.getId(),
-                prestador.getId(),
-                prestador.getNome(),
-                prestador.getTelefone(),
-                prestador.getFoto(),
-                prestador.getCidade(),
-                prestador.getEstado(),
-                prestador.getCategoria().getNome(),
-                salvo.getDataAgendamento(),
-                salvo.getPeriodo(),
-                salvo.getStatus(),
-                false // recém-criado = não avaliado
+                a.getId(),
+                a.getPrestador().getId(),
+                a.getPrestador().getNome(),
+                a.getPrestador().getTelefone(),
+                a.getPrestador().getFoto(),
+                a.getPrestador().getCidade(),
+                a.getPrestador().getEstado(),
+                categorias,
+                a.getDataAgendamento(),
+                a.getPeriodo(),
+                a.getStatus(),
+                a.getAvaliacao() != null,
+                a.getAvaliacao() != null ? a.getAvaliacao().getNota() : null,
+                a.getAvaliacao() != null ? a.getAvaliacao().getDescricao() : null,
+                a.getCanceladoPor()
         );
     }
 }
-

@@ -14,29 +14,26 @@ public class PrestadorDetalhesResponseDTO {
     private String foto;
     private String cidade;
     private String estado;
-    private String descricao;
-    private String categoria;
+    private List<CategoriaDescricaoDTO> categorias; // ✅ várias categorias com descrição
     private Double mediaAvaliacao;
     private List<AvaliacaoResponseDTO> avaliacoes;
 
     public PrestadorDetalhesResponseDTO(Long id,
-                                String nome,
-                                String telefone,
-                                String foto,
-                                String cidade,
-                                String estado,
-                                String descricao,
-                                String categoria,
-                                Double mediaAvaliacao,
-                                List<AvaliacaoResponseDTO> avaliacoes) {
+                                        String nome,
+                                        String telefone,
+                                        String foto,
+                                        String cidade,
+                                        String estado,
+                                        List<CategoriaDescricaoDTO> categorias,
+                                        Double mediaAvaliacao,
+                                        List<AvaliacaoResponseDTO> avaliacoes) {
         this.id = id;
         this.nome = nome;
         this.telefone = telefone;
         this.foto = foto;
         this.cidade = cidade;
         this.estado = estado;
-        this.descricao = descricao;
-        this.categoria = categoria;
+        this.categorias = categorias;
         this.mediaAvaliacao = mediaAvaliacao;
         this.avaliacoes = avaliacoes;
     }

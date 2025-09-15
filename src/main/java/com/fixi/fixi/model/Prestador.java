@@ -3,6 +3,8 @@ package com.fixi.fixi.model;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.Set;
+
 @Entity
 @Table(name = "prestador")
 @Getter
@@ -40,10 +42,6 @@ public class Prestador {
     @Column(length = 40)
     private String telefone;
 
-    @Column(length = 255)
-    private String descricao;
-
-    @ManyToOne(optional = false, fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_categoria", nullable = false)
-    private Categoria categoria;
+    @OneToMany(mappedBy = "prestador", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<PrestadorCategoria> categorias;
 }

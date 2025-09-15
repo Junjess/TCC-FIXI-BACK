@@ -7,7 +7,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-@NoArgsConstructor       // 🔹 Necessário para Jackson desserializar sem erro
+@NoArgsConstructor
 
 public class ClienteResponseDTO {
 

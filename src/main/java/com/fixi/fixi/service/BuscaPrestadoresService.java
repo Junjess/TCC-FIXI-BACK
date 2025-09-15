@@ -2,6 +2,7 @@ package com.fixi.fixi.service;
 
 import com.fixi.fixi.dto.response.AvaliacaoResponseDTO;
 import com.fixi.fixi.dto.response.BuscaPrestadoresRespostaDTO;
+import com.fixi.fixi.dto.response.CategoriaDescricaoDTO;
 import com.fixi.fixi.dto.response.PrestadorDetalhesResponseDTO;
 import com.fixi.fixi.model.Avaliacao;
 import com.fixi.fixi.model.Prestador;
@@ -66,9 +67,12 @@ public class BuscaPrestadoresService {
                     .average()
                     .orElse(0.0);
 
-            String categoriaNome = (p.getCategoria() != null && p.getCategoria().getNome() != null)
-                    ? p.getCategoria().getNome()
-                    : "Sem categoria";
+            var categoriasDTO = p.getCategorias().stream()
+                    .map(pc -> new CategoriaDescricaoDTO(
+                            pc.getCategoria().getNome(),
+                            pc.getDescricao()
+                    ))
+                    .toList();
 
             return new BuscaPrestadoresRespostaDTO(
                     p.getId(),
@@ -77,15 +81,14 @@ public class BuscaPrestadoresService {
                     p.getFoto(),
                     p.getCidade(),
                     p.getEstado(),
-                    p.getDescricao(),
-                    categoriaNome,
+                    categoriasDTO,
                     media
             );
         }).collect(Collectors.toList());
     }
 
     public PrestadorDetalhesResponseDTO buscarPrestadorPorId(Long id) {
-        Prestador prestador = buscaRepo.findById(id)
+        Prestador prestador = buscaRepo.findByIdFetchCategorias(id)
                 .orElseThrow(() -> new RuntimeException("Prestador não encontrado"));
 
         // Busca todas as avaliações do prestador
@@ -94,7 +97,7 @@ public class BuscaPrestadoresService {
         // Converte para DTO
         List<AvaliacaoResponseDTO> avaliacoesDTO = avaliacoes.stream()
                 .map(a -> new AvaliacaoResponseDTO(
-                        a.getNota(),                 // Double
+                        a.getNota(),
                         a.getAgendamento().getCliente().getNome(),
                         a.getDescricao()
                 ))
@@ -108,6 +111,14 @@ public class BuscaPrestadoresService {
                 .average()
                 .orElse(0.0);
 
+        // Mapeia categorias com descrição
+        var categoriasDTO = prestador.getCategorias().stream()
+                .map(pc -> new CategoriaDescricaoDTO(
+                        pc.getCategoria().getNome(),
+                        pc.getDescricao()
+                ))
+                .toList();
+
         // Retorna os dados completos
         return new PrestadorDetalhesResponseDTO(
                 prestador.getId(),
@@ -116,8 +127,7 @@ public class BuscaPrestadoresService {
                 prestador.getFoto(),
                 prestador.getCidade(),
                 prestador.getEstado(),
-                prestador.getDescricao(),
-                prestador.getCategoria() != null ? prestador.getCategoria().getNome() : "Sem categoria",
+                categoriasDTO,
                 media,
                 avaliacoesDTO
         );

@@ -7,8 +7,10 @@ import com.fixi.fixi.dto.response.UsuarioRespostaDTO;
 import com.fixi.fixi.model.Categoria;
 import com.fixi.fixi.model.Cliente;
 import com.fixi.fixi.model.Prestador;
+import com.fixi.fixi.model.PrestadorCategoria;
 import com.fixi.fixi.repository.CategoriaRepository;
 import com.fixi.fixi.repository.ClienteRepository;
+import com.fixi.fixi.repository.PrestadorCategoriaRepository;
 import com.fixi.fixi.repository.PrestadorRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCrypt;
@@ -33,6 +35,8 @@ public class AutenticacaoService {
     @Autowired
     private ViaCepService viaCepService; // 🔹 serviço para buscar cidade/estado pelo CEP
 
+    @Autowired
+    private PrestadorCategoriaRepository prestadorCategoriaRepository;
 
     public UsuarioRespostaDTO loginCliente(LoginRequest loginRequest) {
         Cliente cliente = clienteRepository.findByEmail(loginRequest.getEmail());
@@ -114,12 +118,7 @@ public class AutenticacaoService {
             throw new RuntimeException("Email já cadastrado");
         }
 
-        // Busca categoria pelo nome
-        Categoria categoria = categoriaRepository.findByNome(cadastroRequest.getTipoServico());
-        if (categoria == null) {
-            throw new RuntimeException("Categoria não encontrada: " + cadastroRequest.getTipoServico());
-        }
-
+        // Criar prestador
         Prestador prestador = new Prestador();
         prestador.setNome(cadastroRequest.getNome());
         prestador.setEmail(cadastroRequest.getEmail());
@@ -134,10 +133,19 @@ public class AutenticacaoService {
         prestador.setCidade((String) dadosCep.get("localidade"));
         prestador.setEstado((String) dadosCep.get("uf"));
 
-        prestador.setCategoria(categoria);
-        prestador.setDescricao(cadastroRequest.getDescricao());
-
         prestador = prestadorRepository.save(prestador);
+
+        for (Integer idCategoria : cadastroRequest.getCategoriasIds()) {
+            Categoria categoria = categoriaRepository.findById(idCategoria)
+                    .orElseThrow(() -> new RuntimeException("Categoria não encontrada: " + idCategoria));
+
+            PrestadorCategoria pc = new PrestadorCategoria();
+            pc.setPrestador(prestador);
+            pc.setCategoria(categoria);
+            pc.setDescricao(null);
+
+            prestadorCategoriaRepository.save(pc);
+        }
 
         return new UsuarioRespostaDTO(
                 prestador.getId(),

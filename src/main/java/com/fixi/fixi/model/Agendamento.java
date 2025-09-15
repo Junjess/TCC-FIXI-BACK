@@ -40,6 +40,12 @@ public class Agendamento {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 12)
     private StatusAgendamento status;
+
+    @Column(name = "cancelado_por")
+    private String canceladoPor; // valores: "CLIENTE", "PRESTADOR"
+
+    @OneToOne(mappedBy = "agendamento", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private Avaliacao avaliacao;
 }
 
 

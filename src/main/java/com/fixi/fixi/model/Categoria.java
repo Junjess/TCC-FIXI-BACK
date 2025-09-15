@@ -14,9 +14,14 @@ import java.util.Set;
 @Builder
 public class Categoria {
 
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 120)
+    @Column(nullable = false, length = 120, unique = true)
     private String nome;
+
+    // Ligação inversa para ver quais prestadores estão nessa categoria
+    @OneToMany(mappedBy = "categoria", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<PrestadorCategoria> prestadores;
 }
