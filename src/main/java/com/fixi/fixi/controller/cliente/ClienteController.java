@@ -8,6 +8,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.Base64;
 
 @RestController
@@ -65,44 +66,41 @@ public class ClienteController {
                             salvo.getTelefone(),
                             salvo.getCidade(),
                             salvo.getEstado(),
-                            salvo.getFoto()
+                            salvo.getFoto() != null ? Base64.getEncoder().encodeToString(salvo.getFoto()) : null
                     ));
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @PostMapping("/{id}/foto")
-    public ResponseEntity<?> atualizarFoto(
+    @PutMapping("/{id}/foto")
+    public ResponseEntity<Void> atualizarFoto(
             @PathVariable Long id,
             @RequestParam("file") MultipartFile file
     ) {
-        return clienteRepository.findById(id)
-                .map(cliente -> {
-                    try {
-                        if (file.isEmpty()) {
-                            return ResponseEntity.badRequest().body("Arquivo vazio");
-                        }
+        clienteRepository.findById(id).map(cliente -> {
+            try {
+                cliente.setFoto(file.getBytes()); // salva o binário
+                clienteRepository.save(cliente);
+            } catch (IOException e) {
+                throw new RuntimeException("Erro ao processar a foto", e);
+            }
+            return cliente;
+        }).orElseThrow(() -> new RuntimeException("Cliente não encontrado"));
 
-                        // 🔹 converte para Base64 e salva
-                        String base64 = Base64.getEncoder().encodeToString(file.getBytes());
-                        cliente.setFoto(base64);
-                        Cliente salvo = clienteRepository.save(cliente);
+        return ResponseEntity.noContent().build();
+    }
 
-                        return ResponseEntity.ok(new ClienteResponseDTO(
-                                salvo.getId(),
-                                salvo.getNome(),
-                                salvo.getEmail(),
-                                salvo.getTelefone(),
-                                salvo.getCidade(),
-                                salvo.getEstado(),
-                                salvo.getFoto()
-                        ));
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        return ResponseEntity.internalServerError()
-                                .body("Erro ao salvar foto: " + e.getMessage());
-                    }
-                })
-                .orElse(ResponseEntity.notFound().build());
+    @GetMapping("/{id}/foto")
+    public ResponseEntity<byte[]> getFoto(@PathVariable Long id) {
+        Cliente cliente = clienteRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Cliente não encontrado"));
+
+        if (cliente.getFoto() == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        return ResponseEntity.ok()
+                .header("Content-Type", "image/jpeg") // ou image/png dependendo do upload
+                .body(cliente.getFoto());
     }
 }

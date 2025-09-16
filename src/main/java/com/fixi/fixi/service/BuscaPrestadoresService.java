@@ -11,6 +11,7 @@ import com.fixi.fixi.repository.BuscaPrestadoresRepository;
 import com.fixi.fixi.repository.ClienteRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.Base64;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -74,11 +75,15 @@ public class BuscaPrestadoresService {
                     ))
                     .toList();
 
+            String fotoBase64 = p.getFoto() != null
+                    ? Base64.getEncoder().encodeToString(p.getFoto())
+                    : null;
+
             return new BuscaPrestadoresRespostaDTO(
                     p.getId(),
                     p.getNome(),
                     p.getTelefone(),
-                    p.getFoto(),
+                    fotoBase64,
                     p.getCidade(),
                     p.getEstado(),
                     categoriasDTO,
@@ -119,12 +124,16 @@ public class BuscaPrestadoresService {
                 ))
                 .toList();
 
+        String fotoBase64 = prestador.getFoto() != null
+                ? Base64.getEncoder().encodeToString(prestador.getFoto())
+                : null;
+
         // Retorna os dados completos
         return new PrestadorDetalhesResponseDTO(
                 prestador.getId(),
                 prestador.getNome(),
                 prestador.getTelefone(),
-                prestador.getFoto(),
+                fotoBase64,
                 prestador.getCidade(),
                 prestador.getEstado(),
                 categoriasDTO,

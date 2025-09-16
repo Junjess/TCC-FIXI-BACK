@@ -46,6 +46,10 @@ public class Agendamento {
 
     @OneToOne(mappedBy = "agendamento", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private Avaliacao avaliacao;
+
+    @ManyToOne
+    @JoinColumn(name = "categoria_id")
+    private Categoria categoria;
 }
 
 

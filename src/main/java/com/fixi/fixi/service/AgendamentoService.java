@@ -1,10 +1,12 @@
 package com.fixi.fixi.service;
 
 import com.fixi.fixi.dto.response.AgendamentoRespostaDTO;
+import com.fixi.fixi.dto.response.AgendamentoSolicitacaoResponseDTO;
 import com.fixi.fixi.model.Agendamento;
 import com.fixi.fixi.model.Periodo;
 import com.fixi.fixi.model.StatusAgendamento;
 import com.fixi.fixi.repository.AgendamentoRepository;
+import com.fixi.fixi.repository.CategoriaRepository;
 import com.fixi.fixi.repository.ClienteRepository;
 import com.fixi.fixi.repository.PrestadorRepository;
 import jakarta.transaction.Transactional;
@@ -12,6 +14,8 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.Base64;
 import java.util.List;
 
 @Service
@@ -20,15 +24,18 @@ public class AgendamentoService {
     private final AgendamentoRepository agendamentoRepository;
     private final ClienteRepository clienteRepository;
     private final PrestadorRepository prestadorRepository;
+    private final CategoriaRepository categoriaRepository;
 
     public AgendamentoService(
             AgendamentoRepository agendamentoRepository,
             ClienteRepository clienteRepository,
-            PrestadorRepository prestadorRepository
+            PrestadorRepository prestadorRepository,
+            CategoriaRepository categoriaRepository
     ) {
         this.agendamentoRepository = agendamentoRepository;
         this.clienteRepository = clienteRepository;
         this.prestadorRepository = prestadorRepository;
+        this.categoriaRepository = categoriaRepository;
     }
 
     /**
@@ -43,7 +50,7 @@ public class AgendamentoService {
     }
 
     /**
-     * Cliente cancela agendamento
+     * Cliente cancela agendamento.
      */
     @Transactional
     public void cancelarAgendamentoCliente(Long agendamentoId, Long clienteId) {
@@ -51,7 +58,7 @@ public class AgendamentoService {
     }
 
     /**
-     * Prestador cancela agendamento
+     * Prestador cancela agendamento.
      */
     @Transactional
     public void cancelarAgendamentoPrestador(Long agendamentoId, Long prestadorId) {
@@ -96,6 +103,7 @@ public class AgendamentoService {
     public AgendamentoRespostaDTO solicitarAgendamento(
             Long prestadorId,
             Long clienteId,
+            String nomeCategoria,
             LocalDate data,
             Periodo periodo
     ) {
@@ -104,21 +112,33 @@ public class AgendamentoService {
         var cliente = clienteRepository.findById(clienteId)
                 .orElseThrow(() -> new RuntimeException("Cliente não encontrado"));
 
-        // Regra: cliente já tem agendamento neste dia com o mesmo prestador?
-        boolean mesmoDiaPrestador = agendamentoRepository.existsByClienteIdAndPrestadorIdAndDataAgendamentoAndStatusIn(
-                clienteId,
-                prestadorId,
-                data,
-                List.of(StatusAgendamento.PENDENTE, StatusAgendamento.ACEITO)
-        );
-        if (mesmoDiaPrestador) {
-            throw new RuntimeException("Você já possui um agendamento com este prestador nesta data.");
+        var categoria = categoriaRepository.findByNome(nomeCategoria);
+        if (categoria == null) {
+            throw new RuntimeException("Categoria não encontrada");
         }
 
-        // Criar novo agendamento
+        // verifica se o prestador possui a categoria
+        boolean prestadorPossuiCategoria = prestador.getCategorias().stream()
+                .anyMatch(pc -> pc.getCategoria().getNome().equalsIgnoreCase(nomeCategoria));
+        if (!prestadorPossuiCategoria) {
+            throw new RuntimeException("Prestador não atende a categoria selecionada.");
+        }
+
+        // verifica disponibilidade
+        boolean prestadorOcupado = agendamentoRepository.existsByPrestadorIdAndDataAgendamentoAndPeriodoAndStatusIn(
+                prestadorId,
+                data,
+                periodo,
+                List.of(StatusAgendamento.PENDENTE, StatusAgendamento.ACEITO)
+        );
+        if (prestadorOcupado) {
+            throw new RuntimeException("Prestador já possui agendamento nesse período.");
+        }
+
         Agendamento ag = new Agendamento();
         ag.setPrestador(prestador);
         ag.setCliente(cliente);
+        ag.setCategoria(categoria);
         ag.setDataAgendamento(data);
         ag.setPeriodo(periodo);
         ag.setStatus(StatusAgendamento.PENDENTE);
@@ -148,15 +168,31 @@ public class AgendamentoService {
                 .map(pc -> pc.getCategoria().getNome())
                 .toList();
 
+        String fotoBase64 = a.getPrestador().getFoto() != null
+                ? Base64.getEncoder().encodeToString(a.getPrestador().getFoto())
+                : null;
+
         return new AgendamentoRespostaDTO(
                 a.getId(),
+
+                // 🔹 Prestador
                 a.getPrestador().getId(),
                 a.getPrestador().getNome(),
                 a.getPrestador().getTelefone(),
-                a.getPrestador().getFoto(),
+                fotoBase64,
                 a.getPrestador().getCidade(),
                 a.getPrestador().getEstado(),
                 categorias,
+
+                // 🔹 Cliente
+                a.getCliente().getId(),
+                a.getCliente().getNome(),
+                a.getCliente().getTelefone(),
+                Arrays.toString(a.getCliente().getFoto()),
+                a.getCliente().getCidade(),
+                a.getCliente().getEstado(),
+
+                // 🔹 Agendamento
                 a.getDataAgendamento(),
                 a.getPeriodo(),
                 a.getStatus(),
@@ -165,5 +201,59 @@ public class AgendamentoService {
                 a.getAvaliacao() != null ? a.getAvaliacao().getDescricao() : null,
                 a.getCanceladoPor()
         );
+    }
+
+    /**
+     * Prestador aceita agendamento.
+     */
+    @Transactional
+    public void aceitarAgendamento(Long prestadorId, Long agendamentoId) {
+        Agendamento agendamento = agendamentoRepository.findById(agendamentoId)
+                .orElseThrow(() -> new RuntimeException("Agendamento não encontrado"));
+
+        if (!agendamento.getPrestador().getId().equals(prestadorId)) {
+            throw new RuntimeException("Prestador não autorizado para esse agendamento.");
+        }
+
+        agendamento.setStatus(StatusAgendamento.ACEITO);
+        agendamentoRepository.save(agendamento);
+    }
+
+    /**
+     * Prestador recusa agendamento.
+     */
+    @Transactional
+    public void recusarAgendamento(Long prestadorId, Long agendamentoId) {
+        Agendamento agendamento = agendamentoRepository.findById(agendamentoId)
+                .orElseThrow(() -> new RuntimeException("Agendamento não encontrado"));
+
+        if (!agendamento.getPrestador().getId().equals(prestadorId)) {
+            throw new RuntimeException("Prestador não autorizado para esse agendamento.");
+        }
+
+        agendamento.setStatus(StatusAgendamento.NEGADO); // 🔹 corrigido
+        agendamentoRepository.save(agendamento);
+    }
+
+    /**
+     * Lista apenas agendamentos pendentes de um prestador (dados do cliente).
+     */
+    @Transactional
+    public List<AgendamentoSolicitacaoResponseDTO> listarPendentesPorPrestador(Long prestadorId) {
+        List<Agendamento> agendamentos = agendamentoRepository.findPendentesByPrestadorId(prestadorId);
+
+        return agendamentos.stream().map(a ->
+                new AgendamentoSolicitacaoResponseDTO(
+                        a.getId(),
+                        a.getCliente().getId(),
+                        a.getCliente().getNome(),
+                        a.getCliente().getTelefone(),
+                        Arrays.toString(a.getCliente().getFoto()),
+                        a.getDataAgendamento(),
+                        a.getPeriodo(),
+                        a.getStatus(),
+                        a.getCategoria() != null ? a.getCategoria().getNome() : null
+                )
+        ).toList();
     }
 }

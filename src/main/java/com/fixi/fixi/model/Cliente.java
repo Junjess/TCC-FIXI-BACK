@@ -34,8 +34,8 @@ public class Cliente {
     @Column(length = 2, nullable = false)
     private String estado;
 
-    @Column(columnDefinition = "TEXT")
-    private String foto;
+    @Lob
+    private byte[] foto;
 
     @Column(length = 40)
     private String telefone;

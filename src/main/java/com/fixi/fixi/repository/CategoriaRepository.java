@@ -8,7 +8,7 @@ import java.util.List;
 
 
 @Repository
-public interface CategoriaRepository extends JpaRepository<Categoria, Integer> {
+public interface CategoriaRepository extends JpaRepository<Categoria, Long> {
     Categoria findByNome(String nome);
     List<Categoria> findAllByOrderByNomeAsc();
 }

@@ -1,6 +1,7 @@
 package com.fixi.fixi.repository;
 
 import com.fixi.fixi.model.Agendamento;
+import com.fixi.fixi.model.Periodo;
 import com.fixi.fixi.model.StatusAgendamento;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -71,4 +72,29 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> 
             LocalDate dataAgendamento,
             List<StatusAgendamento> status
     );
+
+    boolean existsByClienteIdAndPrestadorIdAndDataAgendamentoAndPeriodoAndStatusIn(
+            Long clienteId,
+            Long prestadorId,
+            LocalDate data,
+            Periodo periodo,
+            List<StatusAgendamento> status
+    );
+
+    boolean existsByPrestadorIdAndDataAgendamentoAndPeriodoAndStatusIn(
+            Long prestadorId,
+            LocalDate data,
+            Periodo periodo,
+            List<StatusAgendamento> status
+    );
+
+    @Query("""
+        select distinct a
+        from Agendamento a
+        join fetch a.cliente c
+        join fetch a.prestador p
+        where p.id = :prestadorId
+          and a.status = com.fixi.fixi.model.StatusAgendamento.PENDENTE
+        """)
+    List<Agendamento> findPendentesByPrestadorId(@Param("prestadorId") Long prestadorId);
 }

@@ -16,5 +16,5 @@ public class RegistroPrestadorRequest {
     private String tipoUsuario;
 
     // Lista de IDs ou nomes das categorias escolhidas
-    private List<Integer> categoriasIds;
+    private List<Long> categoriasIds;
 }

@@ -1,6 +1,7 @@
 package com.fixi.fixi.controller.prestador;
 
 import com.fixi.fixi.dto.response.AgendamentoRespostaDTO;
+import com.fixi.fixi.dto.response.AgendamentoSolicitacaoResponseDTO;
 import com.fixi.fixi.model.Periodo;
 import com.fixi.fixi.service.AgendamentoService;
 import org.springframework.http.ResponseEntity;
@@ -39,10 +40,11 @@ public class AgendamentoPrestadorController {
     public AgendamentoRespostaDTO solicitarAgendamento(
             @PathVariable Long id,
             @RequestParam Long clienteId,
+            @RequestParam String nomeCategoria,
             @RequestParam LocalDate data,
             @RequestParam Periodo periodo
     ) {
-        return agendamentoService.solicitarAgendamento(id, clienteId, data, periodo);
+        return agendamentoService.solicitarAgendamento(id, clienteId, nomeCategoria, data, periodo);
     }
 
     /**
@@ -65,4 +67,34 @@ public class AgendamentoPrestadorController {
         agendamentoService.cancelarAgendamentoPrestador(id, prestadorId);
         return ResponseEntity.noContent().build();
     }
+
+    /**
+     * Prestador aceita um agendamento pendente
+     */
+    @PutMapping("/{prestadorId}/agendamentos/{id}/aceitar")
+    public ResponseEntity<Void> aceitarAgendamento(
+            @PathVariable Long prestadorId,
+            @PathVariable Long id
+    ) {
+        agendamentoService.aceitarAgendamento(prestadorId, id);
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Prestador recusa um agendamento pendente
+     */
+    @PutMapping("/{prestadorId}/agendamentos/{id}/recusar")
+    public ResponseEntity<Void> recusarAgendamento(
+            @PathVariable Long prestadorId,
+            @PathVariable Long id
+    ) {
+        agendamentoService.recusarAgendamento(prestadorId, id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{id}/agendamentos/pendentes")
+    public List<AgendamentoSolicitacaoResponseDTO> listarPendentes(@PathVariable Long id) {
+        return agendamentoService.listarPendentesPorPrestador(id);
+    }
+
 }

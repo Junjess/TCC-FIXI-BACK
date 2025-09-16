@@ -17,6 +17,8 @@ import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Arrays;
+import java.util.Base64;
 import java.util.Map;
 import java.util.Optional;
 
@@ -53,7 +55,7 @@ public class AutenticacaoService {
                 cliente.getId(),
                 cliente.getNome(),
                 cliente.getEmail(),
-                cliente.getFoto()
+                Arrays.toString(cliente.getFoto())
         );
     }
 
@@ -68,11 +70,15 @@ public class AutenticacaoService {
             throw new RuntimeException("Senha incorreta");
         }
 
+        String fotoBase64 = prestador.getFoto() != null
+                ? Base64.getEncoder().encodeToString(prestador.getFoto())
+                : null;
+
         return new UsuarioRespostaDTO(
                 prestador.getId(),
                 prestador.getNome(),
                 prestador.getEmail(),
-                prestador.getFoto()
+                fotoBase64
         );
     }
 
@@ -107,7 +113,7 @@ public class AutenticacaoService {
                 cliente.getId(),
                 cliente.getNome(),
                 cliente.getEmail(),
-                cliente.getFoto()
+                Arrays.toString(cliente.getFoto())
         );
     }
 
@@ -135,7 +141,7 @@ public class AutenticacaoService {
 
         prestador = prestadorRepository.save(prestador);
 
-        for (Integer idCategoria : cadastroRequest.getCategoriasIds()) {
+        for (Long idCategoria : cadastroRequest.getCategoriasIds()) {
             Categoria categoria = categoriaRepository.findById(idCategoria)
                     .orElseThrow(() -> new RuntimeException("Categoria não encontrada: " + idCategoria));
 
@@ -147,11 +153,15 @@ public class AutenticacaoService {
             prestadorCategoriaRepository.save(pc);
         }
 
+        String fotoBase64 = prestador.getFoto() != null
+                ? Base64.getEncoder().encodeToString(prestador.getFoto())
+                : null;
+
         return new UsuarioRespostaDTO(
                 prestador.getId(),
                 prestador.getNome(),
                 prestador.getEmail(),
-                prestador.getFoto()
+                fotoBase64
         );
     }
 }

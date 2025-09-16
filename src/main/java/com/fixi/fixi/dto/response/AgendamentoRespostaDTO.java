@@ -13,16 +13,25 @@ import java.util.List;
 public class AgendamentoRespostaDTO {
 
     private Long idAgendamento;
+
+    // 🔹 Dados do prestador
     private Long idPrestador;
     private String nomePrestador;
     private String telefonePrestador;
     private String fotoPrestador;
     private String cidadePrestador;
     private String estadoPrestador;
-
-    // ✅ agora é lista, pois um prestador pode ter várias categorias
     private List<String> categoriasPrestador;
 
+    // 🔹 Dados do cliente
+    private Long idCliente;
+    private String nomeCliente;
+    private String telefoneCliente;
+    private String fotoCliente;
+    private String cidadeCliente;
+    private String estadoCliente;
+
+    // 🔹 Dados do agendamento
     private LocalDate data;
     private String periodo;
     private String statusAgendamento;
@@ -36,6 +45,8 @@ public class AgendamentoRespostaDTO {
      */
     public AgendamentoRespostaDTO(
             Long idAgendamento,
+
+            // prestador
             Long idPrestador,
             String nomePrestador,
             String telefonePrestador,
@@ -43,6 +54,16 @@ public class AgendamentoRespostaDTO {
             String cidadePrestador,
             String estadoPrestador,
             List<String> categoriasPrestador,
+
+            // cliente
+            Long idCliente,
+            String nomeCliente,
+            String telefoneCliente,
+            String fotoCliente,
+            String cidadeCliente,
+            String estadoCliente,
+
+            // agendamento
             LocalDate data,
             Periodo periodo,
             StatusAgendamento status,
@@ -52,6 +73,8 @@ public class AgendamentoRespostaDTO {
             String canceladoPor
     ) {
         this.idAgendamento = idAgendamento;
+
+        // prestador
         this.idPrestador = idPrestador;
         this.nomePrestador = nomePrestador;
         this.telefonePrestador = telefonePrestador;
@@ -59,47 +82,22 @@ public class AgendamentoRespostaDTO {
         this.cidadePrestador = cidadePrestador;
         this.estadoPrestador = estadoPrestador;
         this.categoriasPrestador = categoriasPrestador;
+
+        // cliente
+        this.idCliente = idCliente;
+        this.nomeCliente = nomeCliente;
+        this.telefoneCliente = telefoneCliente;
+        this.fotoCliente = fotoCliente;
+        this.cidadeCliente = cidadeCliente;
+        this.estadoCliente = estadoCliente;
+
+        // agendamento
         this.data = data;
         this.periodo = periodo.name();
         this.statusAgendamento = status.name();
         this.avaliado = avaliado;
         this.nota = nota;
         this.descricaoAvaliacao = descricaoAvaliacao;
-        this.canceladoPor = canceladoPor;
-    }
-
-    /**
-     * Construtor reduzido (sem avaliação, mas com canceladoPor).
-     */
-    public AgendamentoRespostaDTO(
-            Long idAgendamento,
-            Long idPrestador,
-            String nomePrestador,
-            String telefonePrestador,
-            String fotoPrestador,
-            String cidadePrestador,
-            String estadoPrestador,
-            List<String> categoriasPrestador,
-            LocalDate data,
-            Periodo periodo,
-            StatusAgendamento status,
-            boolean avaliado,
-            String canceladoPor
-    ) {
-        this.idAgendamento = idAgendamento;
-        this.idPrestador = idPrestador;
-        this.nomePrestador = nomePrestador;
-        this.telefonePrestador = telefonePrestador;
-        this.fotoPrestador = fotoPrestador;
-        this.cidadePrestador = cidadePrestador;
-        this.estadoPrestador = estadoPrestador;
-        this.categoriasPrestador = categoriasPrestador;
-        this.data = data;
-        this.periodo = periodo.name();
-        this.statusAgendamento = status.name();
-        this.avaliado = avaliado;
-        this.nota = null;
-        this.descricaoAvaliacao = null;
         this.canceladoPor = canceladoPor;
     }
 }
