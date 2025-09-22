@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/clientes")
@@ -30,11 +31,11 @@ public class AgendamentoClienteController {
      * Cliente cancela um agendamento
      */
     @PutMapping("/{clienteId}/agendamentos/{id}/cancelar")
-    public ResponseEntity<Void> cancelarAgendamentoPorCliente(
+    public ResponseEntity<Map<String, String>> cancelarAgendamentoPorCliente(
             @PathVariable Long clienteId,
             @PathVariable Long id
     ) {
         agendamentoService.cancelarAgendamentoCliente(id, clienteId);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(Map.of("message", "Agendamento cancelado e e-mail enviado com sucesso."));
     }
 }

@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/prestadores")
@@ -42,9 +43,19 @@ public class AgendamentoPrestadorController {
             @RequestParam Long clienteId,
             @RequestParam String nomeCategoria,
             @RequestParam LocalDate data,
-            @RequestParam Periodo periodo
+            @RequestParam Periodo periodo,
+            @RequestParam String descricaoServico,
+            @RequestParam(required = false) Double valorSugerido
     ) {
-        return agendamentoService.solicitarAgendamento(id, clienteId, nomeCategoria, data, periodo);
+        return agendamentoService.solicitarAgendamento(
+                id,
+                clienteId,
+                nomeCategoria,
+                data,
+                periodo,
+                descricaoServico,
+                valorSugerido
+        );
     }
 
     /**
@@ -60,12 +71,12 @@ public class AgendamentoPrestadorController {
      * Prestador cancela um agendamento
      */
     @PutMapping("/{prestadorId}/agendamentos/{id}/cancelar")
-    public ResponseEntity<Void> cancelarPorPrestador(
+    public ResponseEntity<Map<String, String>> cancelarPorPrestador(
             @PathVariable Long prestadorId,
             @PathVariable Long id
     ) {
         agendamentoService.cancelarAgendamentoPrestador(id, prestadorId);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(Map.of("message", "Agendamento cancelado e e-mail enviado com sucesso."));
     }
 
     /**

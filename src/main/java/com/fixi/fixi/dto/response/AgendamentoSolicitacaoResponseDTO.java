@@ -7,8 +7,10 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDate;
+
 @Getter
 @Setter
+@NoArgsConstructor
 public class AgendamentoSolicitacaoResponseDTO {
     private Long idAgendamento;
 
@@ -22,7 +24,10 @@ public class AgendamentoSolicitacaoResponseDTO {
     private LocalDate data;
     private String periodo;
     private String statusAgendamento;
-    private String servico;
+
+    // Novos campos
+    private String descricaoServico;
+    private Double valorSugerido;
 
     public AgendamentoSolicitacaoResponseDTO(
             Long idAgendamento,
@@ -33,7 +38,8 @@ public class AgendamentoSolicitacaoResponseDTO {
             LocalDate data,
             Periodo periodo,
             StatusAgendamento status,
-            String servico
+            String descricaoServico,
+            Double valorSugerido
     ) {
         this.idAgendamento = idAgendamento;
         this.idCliente = idCliente;
@@ -43,6 +49,7 @@ public class AgendamentoSolicitacaoResponseDTO {
         this.data = data;
         this.periodo = periodo.name();
         this.statusAgendamento = status.name();
-        this.servico = servico;
+        this.descricaoServico = descricaoServico;
+        this.valorSugerido = valorSugerido;
     }
 }

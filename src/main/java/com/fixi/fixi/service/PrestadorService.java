@@ -1,17 +1,20 @@
 package com.fixi.fixi.service;
 
+import com.fixi.fixi.dto.request.PrestadorUpdateDTO;
 import com.fixi.fixi.dto.response.CategoriaDescricaoDTO;
 import com.fixi.fixi.dto.response.PrestadorResponseDTO;
+import com.fixi.fixi.model.Categoria;
 import com.fixi.fixi.model.Prestador;
+import com.fixi.fixi.model.PrestadorCategoria;
 import com.fixi.fixi.repository.AvaliacaoRepository;
+import com.fixi.fixi.repository.CategoriaRepository;
+import com.fixi.fixi.repository.PrestadorCategoriaRepository;
 import com.fixi.fixi.repository.PrestadorRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.util.Base64;
 import java.util.List;
 
@@ -22,6 +25,10 @@ public class PrestadorService {
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     @Autowired
     private AvaliacaoRepository avaliacaoRepository;
+    @Autowired
+    private PrestadorCategoriaRepository prestadorCategoriaRepository;
+    @Autowired
+    private CategoriaRepository categoriaRepository;
 
     public PrestadorService(PrestadorRepository prestadorRepository, AvaliacaoRepository avaliacaoRepository) {
         this.prestadorRepository = prestadorRepository;
@@ -29,32 +36,53 @@ public class PrestadorService {
     }
 
     @Transactional
-    public PrestadorResponseDTO atualizarPrestador(Long id, Prestador prestadorAtualizado) {
+    public PrestadorResponseDTO atualizarPrestador(Long id, PrestadorUpdateDTO dto) {
         Prestador prestador = prestadorRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Prestador não encontrado"));
 
-        // valida email duplicado
-        if (prestadorAtualizado.getEmail() != null) {
-            Prestador existente = prestadorRepository.findByEmail(prestadorAtualizado.getEmail());
+        // Dados básicos
+        if (dto.getEmail() != null) {
+            Prestador existente = prestadorRepository.findByEmail(dto.getEmail());
             if (existente != null && !existente.getId().equals(id)) {
                 throw new RuntimeException("E-mail já está em uso por outro prestador.");
             }
-            prestador.setEmail(prestadorAtualizado.getEmail());
+            prestador.setEmail(dto.getEmail());
         }
 
-        if (prestadorAtualizado.getNome() != null) prestador.setNome(prestadorAtualizado.getNome());
-        if (prestadorAtualizado.getTelefone() != null) prestador.setTelefone(prestadorAtualizado.getTelefone());
-        if (prestadorAtualizado.getCidade() != null) prestador.setCidade(prestadorAtualizado.getCidade());
-        if (prestadorAtualizado.getEstado() != null) prestador.setEstado(prestadorAtualizado.getEstado());
-        if (prestadorAtualizado.getCep() != null) prestador.setCep(prestadorAtualizado.getCep());
+        if (dto.getNome() != null) prestador.setNome(dto.getNome());
+        if (dto.getTelefone() != null) prestador.setTelefone(dto.getTelefone());
+        if (dto.getCidade() != null) prestador.setCidade(dto.getCidade());
+        if (dto.getEstado() != null) prestador.setEstado(dto.getEstado());
+        if (dto.getCep() != null) prestador.setCep(dto.getCep());
 
-        if (prestadorAtualizado.getSenha() != null && !prestadorAtualizado.getSenha().isBlank()) {
-            prestador.setSenha(passwordEncoder.encode(prestadorAtualizado.getSenha()));
+        if (dto.getSenha() != null && !dto.getSenha().isBlank()) {
+            prestador.setSenha(passwordEncoder.encode(dto.getSenha()));
         }
 
-        Prestador salvo = prestadorRepository.save(prestador);
+        // Atualizar categorias
+        if (dto.getCategorias() != null) {
+            prestadorCategoriaRepository.deleteByPrestador_Id(prestador.getId());
 
-        return toDTO(salvo);
+            for (PrestadorUpdateDTO.CategoriaDTO categoriaReq : dto.getCategorias()) {
+                Categoria categoria = categoriaRepository.findById(categoriaReq.getId())
+                        .orElseThrow(() -> new RuntimeException("Categoria não encontrada: " + categoriaReq.getId()));
+
+                PrestadorCategoria pc = new PrestadorCategoria();
+                pc.setPrestador(prestador);
+                pc.setCategoria(categoria);
+
+                prestadorCategoriaRepository.save(pc);
+            }
+        }
+
+        prestadorRepository.save(prestador);
+        prestadorRepository.flush(); //garante sincronização com o banco
+
+        // recarrega do banco com categorias atualizadas
+        Prestador reloaded = prestadorRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Erro ao recarregar prestador"));
+
+        return toDTO(reloaded);
     }
 
     public PrestadorResponseDTO toDTO(Prestador p) {

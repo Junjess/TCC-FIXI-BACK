@@ -14,7 +14,7 @@ public class PrestadorDetalhesResponseDTO {
     private String foto;
     private String cidade;
     private String estado;
-    private List<CategoriaDescricaoDTO> categorias; // ✅ várias categorias com descrição
+    private List<CategoriaDescricaoDTO> categorias;
     private Double mediaAvaliacao;
     private List<AvaliacaoResponseDTO> avaliacoes;
 

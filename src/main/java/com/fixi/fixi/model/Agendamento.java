@@ -50,6 +50,12 @@ public class Agendamento {
     @ManyToOne
     @JoinColumn(name = "categoria_id")
     private Categoria categoria;
+
+    @Column(name= "descricao_servico", nullable = false)
+    private String descricaoServico;
+
+    @Column(name= "valor_sugerido", nullable = true)
+    private Double valorSugerido;
 }
 
 

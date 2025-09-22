@@ -1,5 +1,6 @@
 package com.fixi.fixi.controller.prestador;
 
+import com.fixi.fixi.dto.request.PrestadorUpdateDTO;
 import com.fixi.fixi.dto.response.PrestadorResponseDTO;
 import com.fixi.fixi.model.Prestador;
 import com.fixi.fixi.repository.PrestadorRepository;
@@ -24,11 +25,10 @@ public class PrestadoresController {
     }
 
     @PutMapping("/atualizar/{id}")
-    public ResponseEntity<PrestadorResponseDTO> atualizarPrestador(
+    public PrestadorResponseDTO atualizarPrestador(
             @PathVariable Long id,
-            @RequestBody Prestador prestadorAtualizado
-    ) {
-        return ResponseEntity.ok(prestadorService.atualizarPrestador(id, prestadorAtualizado));
+            @RequestBody PrestadorUpdateDTO dto) {
+        return prestadorService.atualizarPrestador(id, dto);
     }
 
     @PostMapping("/{id}/foto")

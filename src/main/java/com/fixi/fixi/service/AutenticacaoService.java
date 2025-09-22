@@ -3,6 +3,8 @@ package com.fixi.fixi.service;
 import com.fixi.fixi.dto.request.LoginRequest;
 import com.fixi.fixi.dto.request.RegistroClienteRequest;
 import com.fixi.fixi.dto.request.RegistroPrestadorRequest;
+import com.fixi.fixi.dto.response.CategoriaDescricaoDTO;
+import com.fixi.fixi.dto.response.PrestadorResponseDTO;
 import com.fixi.fixi.dto.response.UsuarioRespostaDTO;
 import com.fixi.fixi.model.Categoria;
 import com.fixi.fixi.model.Cliente;
@@ -17,10 +19,8 @@ import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.Arrays;
-import java.util.Base64;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class AutenticacaoService {
@@ -39,6 +39,8 @@ public class AutenticacaoService {
 
     @Autowired
     private PrestadorCategoriaRepository prestadorCategoriaRepository;
+    @Autowired
+    private PrestadorService prestadorService;
 
     public UsuarioRespostaDTO loginCliente(LoginRequest loginRequest) {
         Cliente cliente = clienteRepository.findByEmail(loginRequest.getEmail());
@@ -59,7 +61,7 @@ public class AutenticacaoService {
         );
     }
 
-    public UsuarioRespostaDTO loginPrestador(LoginRequest loginRequest) {
+    public PrestadorResponseDTO loginPrestador(LoginRequest loginRequest) {
         Prestador prestador = prestadorRepository.findByEmail(loginRequest.getEmail());
 
         if (prestador == null) {
@@ -70,16 +72,8 @@ public class AutenticacaoService {
             throw new RuntimeException("Senha incorreta");
         }
 
-        String fotoBase64 = prestador.getFoto() != null
-                ? Base64.getEncoder().encodeToString(prestador.getFoto())
-                : null;
-
-        return new UsuarioRespostaDTO(
-                prestador.getId(),
-                prestador.getNome(),
-                prestador.getEmail(),
-                fotoBase64
-        );
+        // 🔹 Usa o método do PrestadorService, que já monta DTO com categorias + média
+        return prestadorService.toDTO(prestador);
     }
 
     public UsuarioRespostaDTO cadastroCliente(RegistroClienteRequest cadastroRequest) {

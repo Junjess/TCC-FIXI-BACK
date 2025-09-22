@@ -14,4 +14,6 @@ public interface PrestadorCategoriaRepository extends JpaRepository<PrestadorCat
 
     // Buscar todos os prestadores de uma categoria
     List<PrestadorCategoria> findByCategoriaId(Long categoriaId);
+
+    void deleteByPrestador_Id(Long prestadorId);
 }

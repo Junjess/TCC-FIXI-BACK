@@ -21,7 +21,7 @@ public class AgendamentoRespostaDTO {
     private String fotoPrestador;
     private String cidadePrestador;
     private String estadoPrestador;
-    private List<String> categoriasPrestador;
+    private String categoriaAgendamento;
 
     // 🔹 Dados do cliente
     private Long idCliente;
@@ -39,6 +39,10 @@ public class AgendamentoRespostaDTO {
     private Double nota;
     private String descricaoAvaliacao;
     private String canceladoPor; // CLIENTE ou PRESTADOR
+
+    // 🔹 Novos campos
+    private String descricaoServico;
+    private Double valorSugerido;
 
     /**
      * Construtor completo (com avaliação e canceladoPor).
@@ -70,7 +74,11 @@ public class AgendamentoRespostaDTO {
             boolean avaliado,
             Double nota,
             String descricaoAvaliacao,
-            String canceladoPor
+            String canceladoPor,
+
+            // novos campos
+            String descricaoServico,
+            Double valorSugerido
     ) {
         this.idAgendamento = idAgendamento;
 
@@ -81,7 +89,7 @@ public class AgendamentoRespostaDTO {
         this.fotoPrestador = fotoPrestador;
         this.cidadePrestador = cidadePrestador;
         this.estadoPrestador = estadoPrestador;
-        this.categoriasPrestador = categoriasPrestador;
+        this.categoriaAgendamento = categoriaAgendamento;
 
         // cliente
         this.idCliente = idCliente;
@@ -99,5 +107,12 @@ public class AgendamentoRespostaDTO {
         this.nota = nota;
         this.descricaoAvaliacao = descricaoAvaliacao;
         this.canceladoPor = canceladoPor;
+
+        // novos campos
+        this.descricaoServico = descricaoServico;
+        this.valorSugerido = valorSugerido;
+    }
+
+    public AgendamentoRespostaDTO() {
     }
 }

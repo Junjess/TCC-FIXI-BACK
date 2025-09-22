@@ -33,17 +33,17 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> 
      * Lista agendamentos aceitos de um prestador (carregando cliente, categorias e avaliação).
      */
     @Query("""
-            select distinct a
-            from Agendamento a
-            join fetch a.prestador p
-            join fetch a.cliente c
-            left join fetch a.avaliacao av
-            left join fetch p.categorias pc
-            left join fetch pc.categoria ca
-            where p.id = :prestadorId
-              and a.status = com.fixi.fixi.model.StatusAgendamento.ACEITO
+                select distinct a
+                from Agendamento a
+                join fetch a.prestador p
+                join fetch a.cliente c
+                join fetch a.categoria ca
+                left join fetch a.avaliacao av
+                where p.id = :prestadorId
+                  and a.status = com.fixi.fixi.model.StatusAgendamento.ACEITO
             """)
     List<Agendamento> findAceitosByPrestadorId(@Param("prestadorId") Long prestadorId);
+
 
     /**
      * Lista agendamentos de um prestador em intervalo de datas (carregando categorias).
@@ -89,12 +89,12 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> 
     );
 
     @Query("""
-        select distinct a
-        from Agendamento a
-        join fetch a.cliente c
-        join fetch a.prestador p
-        where p.id = :prestadorId
-          and a.status = com.fixi.fixi.model.StatusAgendamento.PENDENTE
-        """)
+            select distinct a
+            from Agendamento a
+            join fetch a.cliente c
+            join fetch a.prestador p
+            where p.id = :prestadorId
+              and a.status = com.fixi.fixi.model.StatusAgendamento.PENDENTE
+            """)
     List<Agendamento> findPendentesByPrestadorId(@Param("prestadorId") Long prestadorId);
 }

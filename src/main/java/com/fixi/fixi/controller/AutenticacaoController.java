@@ -1,15 +1,15 @@
 package com.fixi.fixi.controller;
 
 import com.fixi.fixi.dto.request.LoginRequest;
+import com.fixi.fixi.dto.request.PrestadorUpdateDTO;
 import com.fixi.fixi.dto.request.RegistroClienteRequest;
 import com.fixi.fixi.dto.request.RegistroPrestadorRequest;
+import com.fixi.fixi.dto.response.PrestadorResponseDTO;
 import com.fixi.fixi.dto.response.UsuarioRespostaDTO;
 import com.fixi.fixi.service.AutenticacaoService;
+import com.fixi.fixi.service.PrestadorService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @CrossOrigin(origins="http://localhost:3000")
@@ -17,6 +17,8 @@ import org.springframework.web.bind.annotation.RestController;
 public class AutenticacaoController {
     @Autowired
     private AutenticacaoService autenticacaoService;
+    @Autowired
+    private PrestadorService prestadorService;
 
     public AutenticacaoController(AutenticacaoService autenticacaoService) {this.autenticacaoService = autenticacaoService;}
 
@@ -26,7 +28,7 @@ public class AutenticacaoController {
     }
 
     @PostMapping("/auth/login/prestador")
-    public UsuarioRespostaDTO loginPrestador (@RequestBody LoginRequest loginRequest){
+    public PrestadorResponseDTO loginPrestador(@RequestBody LoginRequest loginRequest){
         return autenticacaoService.loginPrestador(loginRequest);
     }
 
@@ -39,4 +41,6 @@ public class AutenticacaoController {
     public UsuarioRespostaDTO cadastroPrestador (@RequestBody RegistroPrestadorRequest registroPrestadorRequest){
         return autenticacaoService.cadastroPrestador(registroPrestadorRequest);
     }
+
+
 }
