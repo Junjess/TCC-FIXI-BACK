@@ -21,13 +21,16 @@ public class BuscaPrestadoresService {
     private final ClienteRepository clienteRepository;
     private final BuscaPrestadoresRepository buscaRepo;
     private final AvaliacaoRepository avaliacaoRepository;
+    private final AvaliacaoPlataformaService avaliacaoPlataformaService; // ✅ novo
 
     public BuscaPrestadoresService(ClienteRepository clienteRepository,
                                    BuscaPrestadoresRepository buscaRepo,
-                                   AvaliacaoRepository avaliacaoRepository) {
+                                   AvaliacaoRepository avaliacaoRepository,
+                                   AvaliacaoPlataformaService avaliacaoPlataformaService) {
         this.clienteRepository = clienteRepository;
         this.buscaRepo = buscaRepo;
         this.avaliacaoRepository = avaliacaoRepository;
+        this.avaliacaoPlataformaService = avaliacaoPlataformaService;
     }
 
     public List<BuscaPrestadoresRespostaDTO> listarPrestadoresFiltrados(
@@ -57,11 +60,11 @@ public class BuscaPrestadoresService {
                 categoriasVazia
         );
 
-        // 2) Calcula média das avaliações
+        // 2) Calcula média das avaliações de clientes
         return prestadores.stream().map(p -> {
             List<Avaliacao> avaliacoes = avaliacaoRepository.findByAgendamentoPrestadorId(p.getId());
 
-            Double media = avaliacoes.isEmpty()
+            Double mediaClientes = avaliacoes.isEmpty()
                     ? 0.0
                     : avaliacoes.stream()
                     .mapToDouble(Avaliacao::getNota)
@@ -87,7 +90,7 @@ public class BuscaPrestadoresService {
                     p.getCidade(),
                     p.getEstado(),
                     categoriasDTO,
-                    media
+                    mediaClientes
             );
         }).collect(Collectors.toList());
     }
@@ -96,27 +99,24 @@ public class BuscaPrestadoresService {
         Prestador prestador = buscaRepo.findByIdFetchCategorias(id)
                 .orElseThrow(() -> new RuntimeException("Prestador não encontrado"));
 
-        // Busca todas as avaliações do prestador
+        // 🔹 Busca todas as avaliações do prestador (clientes)
         List<Avaliacao> avaliacoes = avaliacaoRepository.findByAgendamentoPrestadorId(prestador.getId());
 
-        // Converte para DTO
         List<AvaliacaoResponseDTO> avaliacoesDTO = avaliacoes.stream()
                 .map(a -> new AvaliacaoResponseDTO(
                         a.getNota(),
                         a.getAgendamento().getCliente().getNome(),
                         a.getDescricao()
                 ))
-                .collect(Collectors.toList());
+                .toList();
 
-        // Calcula a média
-        Double media = avaliacoes.isEmpty()
+        Double mediaClientes = avaliacoes.isEmpty()
                 ? 0.0
                 : avaliacoes.stream()
                 .mapToDouble(Avaliacao::getNota)
                 .average()
                 .orElse(0.0);
 
-        // Mapeia categorias com descrição
         var categoriasDTO = prestador.getCategorias().stream()
                 .map(pc -> new CategoriaDescricaoDTO(
                         pc.getCategoria().getNome(),
@@ -128,6 +128,11 @@ public class BuscaPrestadoresService {
                 ? Base64.getEncoder().encodeToString(prestador.getFoto())
                 : null;
 
+        // ✅ Busca última nota da plataforma
+        Double notaPlataforma = avaliacaoPlataformaService.buscarUltimaNota(prestador)
+                .map(av -> av.getNotaFinal())
+                .orElse(0.0);
+
         // Retorna os dados completos
         return new PrestadorDetalhesResponseDTO(
                 prestador.getId(),
@@ -137,9 +142,9 @@ public class BuscaPrestadoresService {
                 prestador.getCidade(),
                 prestador.getEstado(),
                 categoriasDTO,
-                media,
-                avaliacoesDTO
+                mediaClientes,
+                avaliacoesDTO,
+                notaPlataforma // ✅ novo campo
         );
     }
-
 }

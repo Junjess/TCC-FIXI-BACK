@@ -1,7 +1,9 @@
 package com.fixi.fixi.service;
 
 import com.fixi.fixi.dto.request.PrestadorUpdateDTO;
+import com.fixi.fixi.dto.response.AvaliacaoResponseDTO;
 import com.fixi.fixi.dto.response.CategoriaDescricaoDTO;
+import com.fixi.fixi.dto.response.PrestadorDetalhesResponseDTO;
 import com.fixi.fixi.dto.response.PrestadorResponseDTO;
 import com.fixi.fixi.model.Categoria;
 import com.fixi.fixi.model.Prestador;
@@ -37,6 +39,7 @@ public class PrestadorService {
 
     @Transactional
     public PrestadorResponseDTO atualizarPrestador(Long id, PrestadorUpdateDTO dto) {
+        System.out.println("Id:" + id);
         Prestador prestador = prestadorRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Prestador não encontrado"));
 
@@ -113,7 +116,6 @@ public class PrestadorService {
         );
     }
 
-
     private double calcularMediaAvaliacoes(Long prestadorId) {
         var avaliacoes = avaliacaoRepository.findByAgendamentoPrestadorId(prestadorId);
         return avaliacoes.stream()
@@ -122,4 +124,50 @@ public class PrestadorService {
                 .orElse(0.0);
     }
 
+    public PrestadorDetalhesResponseDTO buscarPorId(Long id) {
+        Prestador prestador = prestadorRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Prestador não encontrado"));
+
+        // Categorias
+        List<CategoriaDescricaoDTO> categorias = prestador.getCategorias().stream()
+                .map(pc -> new CategoriaDescricaoDTO(
+                        pc.getCategoria().getId().toString(),
+                        pc.getCategoria().getNome()
+                ))
+                .toList();
+
+        // Média de avaliações de clientes
+        double mediaAvaliacao = calcularMediaAvaliacoes(prestador.getId());
+
+        // Avaliações (DTO seguro)
+        List<AvaliacaoResponseDTO> avaliacoes = avaliacaoRepository.findByAgendamentoPrestadorId(prestador.getId())
+                .stream()
+                .map(a -> new AvaliacaoResponseDTO(
+                        a.getNota(),
+                        a.getAgendamento().getCliente().getNome(),
+                        a.getDescricao()
+                ))
+                .toList();
+
+        // Foto como Base64 (se tiver)
+        String fotoBase64 = prestador.getFoto() != null
+                ? Base64.getEncoder().encodeToString(prestador.getFoto())
+                : null;
+
+        // Nota da plataforma (aqui você pode depois trocar pelo cálculo real da Avaliação IA)
+        Double notaPlataforma = mediaAvaliacao;
+
+        return new PrestadorDetalhesResponseDTO(
+                prestador.getId(),
+                prestador.getNome(),
+                prestador.getTelefone(),
+                fotoBase64,
+                prestador.getCidade(),
+                prestador.getEstado(),
+                categorias,
+                mediaAvaliacao,
+                avaliacoes,
+                notaPlataforma
+        );
+    }
 }

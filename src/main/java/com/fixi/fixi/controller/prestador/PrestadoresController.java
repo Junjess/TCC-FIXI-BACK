@@ -1,6 +1,7 @@
 package com.fixi.fixi.controller.prestador;
 
 import com.fixi.fixi.dto.request.PrestadorUpdateDTO;
+import com.fixi.fixi.dto.response.PrestadorDetalhesResponseDTO;
 import com.fixi.fixi.dto.response.PrestadorResponseDTO;
 import com.fixi.fixi.model.Prestador;
 import com.fixi.fixi.repository.PrestadorRepository;
@@ -46,5 +47,10 @@ public class PrestadoresController {
                     }
                 })
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/perfil/{id}")
+    public ResponseEntity<PrestadorDetalhesResponseDTO> buscarPorId(@PathVariable Long id) {
+        return ResponseEntity.ok(prestadorService.buscarPorId(id));
     }
 }

@@ -73,22 +73,31 @@ public class ClienteController {
     }
 
     @PutMapping("/{id}/foto")
-    public ResponseEntity<Void> atualizarFoto(
+    public ResponseEntity<ClienteResponseDTO> atualizarFoto(
             @PathVariable Long id,
             @RequestParam("file") MultipartFile file
     ) {
-        clienteRepository.findById(id).map(cliente -> {
-            try {
-                cliente.setFoto(file.getBytes()); // salva o binário
-                clienteRepository.save(cliente);
-            } catch (IOException e) {
-                throw new RuntimeException("Erro ao processar a foto", e);
-            }
-            return cliente;
-        }).orElseThrow(() -> new RuntimeException("Cliente não encontrado"));
+        Cliente cliente = clienteRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Cliente não encontrado"));
 
-        return ResponseEntity.noContent().build();
+        try {
+            cliente.setFoto(file.getBytes()); // salva o binário no banco
+            clienteRepository.save(cliente);
+        } catch (IOException e) {
+            throw new RuntimeException("Erro ao processar a foto", e);
+        }
+
+        return ResponseEntity.ok(new ClienteResponseDTO(
+                cliente.getId(),
+                cliente.getNome(),
+                cliente.getEmail(),
+                cliente.getTelefone(),
+                cliente.getCidade(),
+                cliente.getEstado(),
+                cliente.getFoto() != null ? Base64.getEncoder().encodeToString(cliente.getFoto()) : null
+        ));
     }
+
 
     @GetMapping("/{id}/foto")
     public ResponseEntity<byte[]> getFoto(@PathVariable Long id) {

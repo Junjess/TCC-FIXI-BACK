@@ -9,8 +9,10 @@ import com.fixi.fixi.model.Mensagem;
 import com.fixi.fixi.repository.ClienteRepository;
 import com.fixi.fixi.repository.ConversaRepository;
 import com.fixi.fixi.repository.MensagemRepository;
+import com.fixi.fixi.service.ChatService;
 import com.fixi.fixi.service.GroqService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -27,8 +29,9 @@ public class ChatController {
     private final MensagemRepository mensagemRepository;
     private final ClienteRepository clienteRepository;
     private final GroqService groqService;
+    private final ChatService chatService;
 
-    // 🔹 Buscar as últimas 10 conversas do cliente
+    // Buscar as últimas 10 conversas do cliente
     @GetMapping("/conversas/{clienteId}")
     public List<ConversaDTO> listarConversas(@PathVariable Long clienteId) {
         return conversaRepository.findTop10ByCliente_IdOrderByDataInicioDesc(clienteId)
@@ -37,7 +40,7 @@ public class ChatController {
                 .toList();
     }
 
-    // 🔹 Buscar mensagens de uma conversa
+    // Buscar mensagens de uma conversa
     @GetMapping("/mensagens/{conversaId}")
     public List<MensagemDTO> listarMensagens(@PathVariable Long conversaId) {
         return mensagemRepository.findByConversa_IdOrderByDataEnvioAsc(conversaId)
@@ -46,7 +49,7 @@ public class ChatController {
                 .toList();
     }
 
-    // 🔹 Criar nova conversa
+    // Criar nova conversa
     @PostMapping("/conversa/{clienteId}")
     public ConversaDTO criarConversa(@PathVariable Long clienteId) {
         Cliente cliente = clienteRepository.findById(clienteId)
@@ -60,7 +63,7 @@ public class ChatController {
         return ConversaDTO.fromEntity(conversaRepository.save(conversa));
     }
 
-    // 🔹 Salvar mensagem (cliente + IA)
+    // Salvar mensagem (cliente + IA)
     @PostMapping("/mensagem/{conversaId}")
     public Map<String, Object> salvarMensagem(@PathVariable Long conversaId, @RequestBody MensagemDTO dto) {
         Conversa conversa = conversaRepository.findById(conversaId)
@@ -94,7 +97,7 @@ public class ChatController {
         return response;
     }
 
-    // 🔹 Atualizar título da conversa
+    // Atualizar título da conversa
     @PutMapping("/conversa/{conversaId}/titulo")
     public ConversaDTO atualizarTitulo(@PathVariable Long conversaId, @RequestBody Map<String, String> body) {
         String novoTitulo = body.get("titulo");
@@ -108,5 +111,11 @@ public class ChatController {
 
         conversa.setTitulo(novoTitulo.trim());
         return ConversaDTO.fromEntity(conversaRepository.save(conversa));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> excluirConversa(@PathVariable Long id) {
+        chatService.excluirConversa(id);
+        return ResponseEntity.noContent().build();
     }
 }

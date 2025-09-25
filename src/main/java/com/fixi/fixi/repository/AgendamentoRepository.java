@@ -2,6 +2,7 @@ package com.fixi.fixi.repository;
 
 import com.fixi.fixi.model.Agendamento;
 import com.fixi.fixi.model.Periodo;
+import com.fixi.fixi.model.Prestador;
 import com.fixi.fixi.model.StatusAgendamento;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -33,17 +34,16 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> 
      * Lista agendamentos aceitos de um prestador (carregando cliente, categorias e avaliação).
      */
     @Query("""
-                select distinct a
-                from Agendamento a
-                join fetch a.prestador p
-                join fetch a.cliente c
-                join fetch a.categoria ca
-                left join fetch a.avaliacao av
-                where p.id = :prestadorId
-                  and a.status = com.fixi.fixi.model.StatusAgendamento.ACEITO
+            select distinct a
+            from Agendamento a
+            join fetch a.prestador p
+            join fetch a.cliente c
+            join fetch a.categoria ca
+            left join fetch a.avaliacao av
+            where p.id = :prestadorId
+              and a.status = com.fixi.fixi.model.StatusAgendamento.ACEITO
             """)
     List<Agendamento> findAceitosByPrestadorId(@Param("prestadorId") Long prestadorId);
-
 
     /**
      * Lista agendamentos de um prestador em intervalo de datas (carregando categorias).
@@ -88,6 +88,9 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> 
             List<StatusAgendamento> status
     );
 
+    /**
+     * Lista agendamentos pendentes de um prestador.
+     */
     @Query("""
             select distinct a
             from Agendamento a
@@ -97,4 +100,16 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> 
               and a.status = com.fixi.fixi.model.StatusAgendamento.PENDENTE
             """)
     List<Agendamento> findPendentesByPrestadorId(@Param("prestadorId") Long prestadorId);
+
+    /** Total de agendamentos de um prestador */
+    @Query("SELECT COUNT(a) FROM Agendamento a WHERE a.prestador = :prestador")
+    long countByPrestador(@Param("prestador") Prestador prestador);
+
+    /** Total de agendamentos por status (ACEITO, CANCELADO, etc.) */
+    @Query("SELECT COUNT(a) FROM Agendamento a WHERE a.prestador = :prestador AND a.status = :status")
+    long countByPrestadorAndStatus(@Param("prestador") Prestador prestador,
+                                   @Param("status") StatusAgendamento status);
+
+    @Query("SELECT av.descricao FROM Agendamento a JOIN a.avaliacao av WHERE a.prestador.id = :prestadorId AND av.descricao IS NOT NULL")
+    List<String> findComentariosByPrestador(@Param("prestadorId") Long prestadorId);
 }

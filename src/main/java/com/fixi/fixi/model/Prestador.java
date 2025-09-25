@@ -3,6 +3,7 @@ package com.fixi.fixi.model;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDate;
 import java.util.Set;
 
 @Entity
@@ -45,4 +46,7 @@ public class Prestador {
 
     @OneToMany(mappedBy = "prestador", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<PrestadorCategoria> categorias;
+
+    @Column(nullable = false, updatable = false)
+    private LocalDate dataCadastro = LocalDate.now();
 }

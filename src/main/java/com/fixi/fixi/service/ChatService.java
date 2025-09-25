@@ -81,4 +81,17 @@ public class ChatService {
     public List<Mensagem> buscarMensagens(Long conversaId) {
         return mensagemRepository.findByConversa_IdOrderByDataEnvioAsc(conversaId);
     }
+
+    @Transactional
+    public void excluirConversa(Long conversaId) {
+        if (!conversaRepository.existsById(conversaId)) {
+            throw new RuntimeException("Conversa não encontrada: " + conversaId);
+        }
+
+        // Exclui mensagens primeiro, se não tiver cascade
+        mensagemRepository.deleteAllByConversa_Id(conversaId);
+
+        // Depois exclui a conversa
+        conversaRepository.deleteById(conversaId);
+    }
 }
