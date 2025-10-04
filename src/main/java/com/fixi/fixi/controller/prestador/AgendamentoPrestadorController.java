@@ -41,7 +41,7 @@ public class AgendamentoPrestadorController {
     public AgendamentoRespostaDTO solicitarAgendamento(
             @PathVariable Long id,
             @RequestParam Long clienteId,
-            @RequestParam String nomeCategoria,
+            @RequestParam Long idCategoria,
             @RequestParam LocalDate data,
             @RequestParam Periodo periodo,
             @RequestParam String descricaoServico,
@@ -50,7 +50,7 @@ public class AgendamentoPrestadorController {
         return agendamentoService.solicitarAgendamento(
                 id,
                 clienteId,
-                nomeCategoria,
+                idCategoria,
                 data,
                 periodo,
                 descricaoServico,
@@ -106,6 +106,11 @@ public class AgendamentoPrestadorController {
     @GetMapping("/{id}/agendamentos/pendentes")
     public List<AgendamentoSolicitacaoResponseDTO> listarPendentes(@PathVariable Long id) {
         return agendamentoService.listarPendentesPorPrestador(id);
+    }
+
+    @PostMapping("/forcar-expirados")
+    public void forcarExpirados() {
+        agendamentoService.atualizarAgendamentosExpirados();
     }
 
 }

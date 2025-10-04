@@ -28,6 +28,7 @@ public class AgendamentoRespostaDTO {
     private String nomeCliente;
     private String telefoneCliente;
     private String fotoCliente;
+    private String fotoTipoCliente;
     private String cidadeCliente;
     private String estadoCliente;
 

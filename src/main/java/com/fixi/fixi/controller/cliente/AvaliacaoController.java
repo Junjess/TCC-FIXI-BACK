@@ -49,11 +49,21 @@ public class AvaliacaoController {
             PdfWriter.getInstance(document, baos);
             document.open();
 
-            // Título
-            document.add(new Paragraph("Relatório de Avaliações dos Clientes\n\n"));
-            // Tabela
-            PdfPTable table = new PdfPTable(3);
-            // 3 colunas
+            // 🔹 Cabeçalho
+            Paragraph titulo = new Paragraph("Relatório de Avaliações dos Clientes");
+            titulo.setAlignment(Paragraph.ALIGN_CENTER);
+            titulo.setSpacingAfter(20);
+            document.add(titulo);
+
+            // 🔹 Introdução
+            document.add(new Paragraph(
+                    "Este relatório apresenta todas as avaliações recebidas diretamente dos clientes.\n" +
+                            "Cada registro contém o nome do cliente, a nota atribuída e possíveis comentários adicionais.\n\n"
+            ));
+
+            // 🔹 Tabela
+            PdfPTable table = new PdfPTable(3); // 3 colunas
+            table.setWidthPercentage(100);
             table.addCell("Cliente");
             table.addCell("Nota");
             table.addCell("Comentário");
@@ -61,18 +71,26 @@ public class AvaliacaoController {
             for (AvaliacaoResponseDTO av : avaliacoes) {
                 table.addCell(av.getClienteNome());
                 table.addCell(String.valueOf(av.getNota()));
-                table.addCell(av.getDescricao() != null ? av.getDescricao() : "");
+                table.addCell(av.getDescricao() != null ? av.getDescricao() : "-");
             }
 
             document.add(table);
+
+            // 🔹 Conclusão
+            document.add(new Paragraph("\nResumo:"));
+            document.add(new Paragraph(
+                    "Foram registradas " + avaliacoes.size() + " avaliações até o momento.\n" +
+                            "Acompanhar o feedback dos clientes ajuda a identificar pontos fortes e oportunidades de melhoria."
+            ));
+
             document.close();
             byte[] pdfBytes = baos.toByteArray();
 
-            return ResponseEntity.ok().header(
-                            HttpHeaders.CONTENT_DISPOSITION,
-                            "attachment; filename=avaliacoes-clientes.pdf")
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=avaliacoes-clientes.pdf")
                     .contentType(MediaType.APPLICATION_PDF)
                     .body(pdfBytes);
+
         } catch (DocumentException e) {
             e.printStackTrace();
             return ResponseEntity.internalServerError().build();

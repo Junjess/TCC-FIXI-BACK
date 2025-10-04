@@ -98,8 +98,4 @@ public class AvaliacaoPlataformaService {
         List<String> comentarios = agendamentoRepository.findComentariosByPrestador(prestador.getId());
         return groqService.avaliarComentariosPrestador(comentarios);
     }
-
-    public Optional<AvaliacaoPlataforma> buscarUltimaNota(Prestador prestador) {
-        return avaliacaoRepository.findUltimaAvaliacaoByPrestador(prestador);
-    }
 }

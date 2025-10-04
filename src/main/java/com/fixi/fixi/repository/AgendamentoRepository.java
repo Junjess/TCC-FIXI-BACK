@@ -112,4 +112,6 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> 
 
     @Query("SELECT av.descricao FROM Agendamento a JOIN a.avaliacao av WHERE a.prestador.id = :prestadorId AND av.descricao IS NOT NULL")
     List<String> findComentariosByPrestador(@Param("prestadorId") Long prestadorId);
+
+    List<Agendamento> findByStatus(StatusAgendamento status);
 }

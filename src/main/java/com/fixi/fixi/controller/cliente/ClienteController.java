@@ -66,7 +66,8 @@ public class ClienteController {
                             salvo.getTelefone(),
                             salvo.getCidade(),
                             salvo.getEstado(),
-                            salvo.getFoto() != null ? Base64.getEncoder().encodeToString(salvo.getFoto()) : null
+                            salvo.getFoto() != null ? Base64.getEncoder().encodeToString(salvo.getFoto()) : null,
+                            salvo.getFotoTipo()
                     ));
                 })
                 .orElse(ResponseEntity.notFound().build());
@@ -81,7 +82,8 @@ public class ClienteController {
                 .orElseThrow(() -> new RuntimeException("Cliente não encontrado"));
 
         try {
-            cliente.setFoto(file.getBytes()); // salva o binário no banco
+            cliente.setFoto(file.getBytes()); // salva bytes
+            cliente.setFotoTipo(file.getContentType()); // salva tipo MIME (ex: image/jpeg, image/png)
             clienteRepository.save(cliente);
         } catch (IOException e) {
             throw new RuntimeException("Erro ao processar a foto", e);
@@ -94,7 +96,8 @@ public class ClienteController {
                 cliente.getTelefone(),
                 cliente.getCidade(),
                 cliente.getEstado(),
-                cliente.getFoto() != null ? Base64.getEncoder().encodeToString(cliente.getFoto()) : null
+                cliente.getFoto() != null ? Base64.getEncoder().encodeToString(cliente.getFoto()) : null,
+                cliente.getFotoTipo()
         ));
     }
 
@@ -109,7 +112,7 @@ public class ClienteController {
         }
 
         return ResponseEntity.ok()
-                .header("Content-Type", "image/jpeg") // ou image/png dependendo do upload
+                .header("Content-Type", cliente.getFotoTipo() != null ? cliente.getFotoTipo() : "image/jpeg")
                 .body(cliente.getFoto());
     }
 }

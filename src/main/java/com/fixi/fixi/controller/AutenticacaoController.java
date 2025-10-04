@@ -4,6 +4,7 @@ import com.fixi.fixi.dto.request.LoginRequest;
 import com.fixi.fixi.dto.request.PrestadorUpdateDTO;
 import com.fixi.fixi.dto.request.RegistroClienteRequest;
 import com.fixi.fixi.dto.request.RegistroPrestadorRequest;
+import com.fixi.fixi.dto.response.LoginResponseDTO;
 import com.fixi.fixi.dto.response.PrestadorResponseDTO;
 import com.fixi.fixi.dto.response.UsuarioRespostaDTO;
 import com.fixi.fixi.service.AutenticacaoService;
@@ -23,12 +24,12 @@ public class AutenticacaoController {
     public AutenticacaoController(AutenticacaoService autenticacaoService) {this.autenticacaoService = autenticacaoService;}
 
     @PostMapping("/auth/login/cliente")
-    public UsuarioRespostaDTO loginCliente (@RequestBody LoginRequest loginRequest){
+    public LoginResponseDTO<UsuarioRespostaDTO> loginCliente(@RequestBody LoginRequest loginRequest) {
         return autenticacaoService.loginCliente(loginRequest);
     }
 
     @PostMapping("/auth/login/prestador")
-    public PrestadorResponseDTO loginPrestador(@RequestBody LoginRequest loginRequest){
+    public LoginResponseDTO<PrestadorResponseDTO> loginPrestador(@RequestBody LoginRequest loginRequest) {
         return autenticacaoService.loginPrestador(loginRequest);
     }
 

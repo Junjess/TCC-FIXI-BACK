@@ -39,6 +39,9 @@ public class Cliente {
     @Lob
     private byte[] foto;
 
+    @Column(name = "foto_tipo")
+    private String fotoTipo;
+
     @Column(length = 40)
     private String telefone;
 }

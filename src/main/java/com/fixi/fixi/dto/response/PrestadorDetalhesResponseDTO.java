@@ -18,6 +18,7 @@ public class PrestadorDetalhesResponseDTO {
     private Double mediaAvaliacao;
     private List<AvaliacaoResponseDTO> avaliacoes;
     private Double notaPlataforma;
+    private String sobre;
 
     public PrestadorDetalhesResponseDTO(Long id,
                                         String nome,
@@ -28,7 +29,8 @@ public class PrestadorDetalhesResponseDTO {
                                         List<CategoriaDescricaoDTO> categorias,
                                         Double mediaAvaliacao,
                                         List<AvaliacaoResponseDTO> avaliacoes,
-                                        Double notaPlataforma) {
+                                        Double notaPlataforma,
+                                        String sobre) {
         this.id = id;
         this.nome = nome;
         this.telefone = telefone;
@@ -39,5 +41,6 @@ public class PrestadorDetalhesResponseDTO {
         this.mediaAvaliacao = mediaAvaliacao;
         this.avaliacoes = avaliacoes;
         this.notaPlataforma = notaPlataforma;
+        this.sobre = sobre;
     }
 }

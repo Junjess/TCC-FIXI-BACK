@@ -37,6 +37,9 @@ public class Prestador {
     @Column(length = 2, nullable = false)
     private String estado;
 
+    @Column(length = 200)
+    private String sobre;
+
     @Lob
     @Column(name = "foto", columnDefinition = "LONGBLOB")
     private byte[] foto;

@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -152,7 +153,6 @@ public class AgendamentoService {
         }
     }
 
-
     /**
      * Lista a agenda de um prestador em um intervalo de datas.
      */
@@ -171,7 +171,7 @@ public class AgendamentoService {
     public AgendamentoRespostaDTO solicitarAgendamento(
             Long prestadorId,
             Long clienteId,
-            String nomeCategoria,
+            Long idCategoria,
             LocalDate data,
             Periodo periodo,
             String descricaoServico,
@@ -182,14 +182,16 @@ public class AgendamentoService {
         var cliente = clienteRepository.findById(clienteId)
                 .orElseThrow(() -> new RuntimeException("Cliente não encontrado"));
 
-        var categoria = categoriaRepository.findByNome(nomeCategoria);
+        var categoria = categoriaRepository.findById(idCategoria)
+                .orElseThrow(() -> new RuntimeException("Categoria não encontrada"));
+
         if (categoria == null) {
             throw new RuntimeException("Categoria não encontrada");
         }
 
         // verifica se o prestador possui a categoria
         boolean prestadorPossuiCategoria = prestador.getCategorias().stream()
-                .anyMatch(pc -> pc.getCategoria().getNome().equalsIgnoreCase(nomeCategoria));
+                .anyMatch(pc -> pc.getCategoria().getId().equals(idCategoria));
         if (!prestadorPossuiCategoria) {
             throw new RuntimeException("Prestador não atende a categoria selecionada.");
         }
@@ -214,7 +216,7 @@ public class AgendamentoService {
         ag.setStatus(StatusAgendamento.PENDENTE);
         ag.setDataSolicitacao(LocalDateTime.now());
 
-        // 🔹 novos campos
+        //novos campos
         ag.setDescricaoServico(descricaoServico);
         ag.setValorSugerido(valorSugerido);
 
@@ -267,7 +269,7 @@ public class AgendamentoService {
         if (agendamento.getCliente().getFoto() != null) {
             dto.setFotoCliente(Base64.getEncoder().encodeToString(agendamento.getCliente().getFoto()));
         }
-
+        dto.setFotoTipoCliente(agendamento.getCliente().getFotoTipo());
         // Dados do agendamento
         dto.setData(agendamento.getDataAgendamento());
         dto.setPeriodo(agendamento.getPeriodo().toString());
@@ -298,6 +300,12 @@ public class AgendamentoService {
 
         agendamento.setStatus(StatusAgendamento.ACEITO);
         agendamentoRepository.save(agendamento);
+
+        Cliente cliente = agendamento.getCliente();
+        Prestador prestador = agendamento.getPrestador();
+
+        enviarEmailAceiteCliente(cliente, prestador, agendamento);
+        enviarEmailAceitePrestador(prestador, cliente, agendamento);
     }
 
     /**
@@ -338,4 +346,144 @@ public class AgendamentoService {
                 )
         ).toList();
     }
+
+    @Scheduled(cron = "0 0 * * * *")
+    @Transactional
+    public void atualizarAgendamentosExpirados() {
+        LocalDateTime hoje = LocalDateTime.now();
+
+        List<Agendamento> agendamentos = agendamentoRepository.findAll();
+
+        for (Agendamento ag : agendamentos) {
+            LocalDate dataAg = ag.getDataAgendamento();
+            LocalDateTime limite;
+
+            if (ag.getPeriodo() == Periodo.MATUTINO) {
+                limite = dataAg.atTime(12, 0); // meio-dia
+            } else { // VESPERTINO
+                limite = dataAg.atTime(18, 0); // 18h
+            }
+            if (ag.getStatus() == StatusAgendamento.PENDENTE && hoje.isAfter(limite)) {
+                ag.setStatus(StatusAgendamento.EXPIRADO);
+                agendamentoRepository.save(ag);
+
+                enviarEmailExpiradoCliente(ag.getCliente(), ag);
+                enviarEmailExpiradoPrestador(ag.getPrestador(), ag);
+            }
+        }
+    }
+
+    public void enviarEmailExpiradoCliente(Cliente cliente, Agendamento agendamento) {
+        String html = """
+                <div style="font-family:sans-serif">
+                  <p>Olá <b>%s</b>, seu agendamento com o prestador <b>%s</b> expirou, pois não foi confirmado a tempo.</p>
+                  <p>Detalhes do agendamento:</p>
+                  <p> Data: <b>%s</b> </p>
+                  <p> Período: <b>%s</b> </p>
+                  <p>Você pode tentar realizar um novo agendamento na plataforma.</p>
+                </div>
+                """.formatted(cliente.getNome(), agendamento.getPrestador().getNome(),
+                agendamento.getDataAgendamento(), agendamento.getPeriodo());
+
+        try {
+            MimeMessage msg = mailSender.createMimeMessage();
+            var helper = new MimeMessageHelper(msg, true, "UTF-8");
+            helper.setFrom(from);
+            helper.setTo(cliente.getEmail());
+            helper.setSubject("Agendamento expirado");
+            helper.setText(html, true);
+            mailSender.send(msg);
+            System.out.println("📩 Email de expiração enviado para cliente");
+        } catch (Exception e) {
+            throw new RuntimeException("Falha ao enviar email para cliente (expirado)", e);
+        }
+    }
+
+    public void enviarEmailExpiradoPrestador(Prestador prestador, Agendamento agendamento) {
+        String html = """
+                <div style="font-family:sans-serif">
+                  <p>Olá <b>%s</b>, o agendamento solicitado pelo cliente <b>%s</b> expirou, pois não foi aceito dentro do prazo.</p>
+                  <p>Detalhes do agendamento:</p>
+                  <p> Data: <b>%s</b> </p>
+                  <p> Período: <b>%s</b> </p>
+                </div>
+                """.formatted(prestador.getNome(), agendamento.getCliente().getNome(),
+                agendamento.getDataAgendamento(), agendamento.getPeriodo());
+
+        try {
+            MimeMessage msg = mailSender.createMimeMessage();
+            var helper = new MimeMessageHelper(msg, true, "UTF-8");
+            helper.setFrom(from);
+            helper.setTo(prestador.getEmail());
+            helper.setSubject("Agendamento expirado");
+            helper.setText(html, true);
+            mailSender.send(msg);
+            System.out.println("📩 Email de expiração enviado para prestador");
+        } catch (Exception e) {
+            throw new RuntimeException("Falha ao enviar email para prestador (expirado)", e);
+        }
+    }
+
+    public void enviarEmailAceiteCliente(Cliente cliente, Prestador prestador, Agendamento agendamento) {
+        String html = """
+            <div style="font-family:sans-serif">
+              <p>Olá <b>%s</b>, seu agendamento com o prestador <b>%s</b> foi <span style="color:green">ACEITO</span>!</p>
+              <p><b>Entre em contato com o prestador para combinar os detalhes:</b></p>
+              <p>📞 Telefone: <b>%s</b></p>
+              <p>📧 E-mail: <b>%s</b></p>
+              <br/>
+              <p>Detalhes do agendamento:</p>
+              <p> Data: <b>%s</b> </p>
+              <p> Período: <b>%s</b> </p>
+              <p> Descrição do serviço: <b>%s</b> </p>
+              <p><i>A comunicação deve ser feita diretamente com o prestador.</i></p>
+            </div>
+            """.formatted(cliente.getNome(), prestador.getNome(), prestador.getTelefone(), prestador.getEmail(),
+                agendamento.getDataAgendamento(), agendamento.getPeriodo(), agendamento.getDescricaoServico());
+
+        try {
+            MimeMessage msg = mailSender.createMimeMessage();
+            var helper = new MimeMessageHelper(msg, true, "UTF-8");
+            helper.setFrom(from);
+            helper.setTo(cliente.getEmail());
+            helper.setSubject("✅ Agendamento aceito pelo prestador");
+            helper.setText(html, true);
+            mailSender.send(msg);
+            System.out.println("📩 Email de aceite enviado para cliente");
+        } catch (Exception e) {
+            throw new RuntimeException("Falha ao enviar email de aceite para cliente", e);
+        }
+    }
+
+    public void enviarEmailAceitePrestador(Prestador prestador, Cliente cliente, Agendamento agendamento) {
+        String html = """
+            <div style="font-family:sans-serif">
+              <p>Olá <b>%s</b>, você aceitou o agendamento do cliente <b>%s</b>.</p>
+              <p><b>Entre em contato com o cliente para combinar os detalhes:</b></p>
+              <p>📞 Telefone: <b>%s</b></p>
+              <p>📧 E-mail: <b>%s</b></p>
+              <br/>
+              <p>Detalhes do agendamento:</p>
+              <p> Data: <b>%s</b> </p>
+              <p> Período: <b>%s</b> </p>
+              <p> Descrição do serviço: <b>%s</b> </p>
+              <p><i>A comunicação deve ser feita diretamente com o cliente.</i></p>
+            </div>
+            """.formatted(prestador.getNome(), cliente.getNome(), cliente.getTelefone(), cliente.getEmail(),
+                agendamento.getDataAgendamento(), agendamento.getPeriodo(), agendamento.getDescricaoServico());
+
+        try {
+            MimeMessage msg = mailSender.createMimeMessage();
+            var helper = new MimeMessageHelper(msg, true, "UTF-8");
+            helper.setFrom(from);
+            helper.setTo(prestador.getEmail());
+            helper.setSubject("📌 Confirmação de aceite do agendamento");
+            helper.setText(html, true);
+            mailSender.send(msg);
+            System.out.println("📩 Email de aceite enviado para prestador");
+        } catch (Exception e) {
+            throw new RuntimeException("Falha ao enviar email de aceite para prestador", e);
+        }
+    }
+
 }

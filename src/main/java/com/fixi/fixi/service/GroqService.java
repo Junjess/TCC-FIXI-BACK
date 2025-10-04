@@ -171,7 +171,7 @@ public class GroqService {
 
     public Double avaliarComentariosPrestador(List<String> comentarios) {
         if (comentarios == null || comentarios.isEmpty()) {
-            return 0.0; // sem comentários = nota neutra
+            return 0.0;
         }
 
         String prompt = """

@@ -20,4 +20,5 @@ public class PrestadorResponseDTO {
     private String foto; // base64
     private Double mediaAvaliacao;
     private List<CategoriaDescricaoDTO> categorias;
+    private String sobre;
 }

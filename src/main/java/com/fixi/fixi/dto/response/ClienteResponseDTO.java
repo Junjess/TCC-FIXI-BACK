@@ -18,8 +18,8 @@ public class ClienteResponseDTO {
     private String cidade;
     private String estado;
     private String foto;
+    private String fotoTipo;
 
-    // 🔹 Construtor auxiliar que nunca lança NullPointer
     public ClienteResponseDTO(
             Long id,
             String nome,
@@ -27,7 +27,8 @@ public class ClienteResponseDTO {
             String telefone,
             String cidade,
             String estado,
-            String foto
+            String foto,
+            String fotoTipo
     ) {
         this.id = id;
         this.nome = nome != null ? nome : "";
@@ -35,6 +36,7 @@ public class ClienteResponseDTO {
         this.telefone = telefone != null ? telefone : "";
         this.cidade = cidade != null ? cidade : "";
         this.estado = estado != null ? estado : "";
-        this.foto = foto; // pode ficar null, o front trata e mostra avatar padrão
+        this.foto = foto;
+        this.fotoTipo = fotoTipo != null ? fotoTipo : "";
     }
 }

@@ -14,6 +14,7 @@ public class PrestadorUpdateDTO {
     private String estado;
     private String cep;
     private String senha;
+    private String sobre;
 
     // Aqui reflete exatamente o que vem do front
     private List<CategoriaDTO> categorias;

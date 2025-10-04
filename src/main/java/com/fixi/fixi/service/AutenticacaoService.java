@@ -4,6 +4,7 @@ import com.fixi.fixi.dto.request.LoginRequest;
 import com.fixi.fixi.dto.request.RegistroClienteRequest;
 import com.fixi.fixi.dto.request.RegistroPrestadorRequest;
 import com.fixi.fixi.dto.response.CategoriaDescricaoDTO;
+import com.fixi.fixi.dto.response.LoginResponseDTO;
 import com.fixi.fixi.dto.response.PrestadorResponseDTO;
 import com.fixi.fixi.dto.response.UsuarioRespostaDTO;
 import com.fixi.fixi.model.Categoria;
@@ -14,6 +15,7 @@ import com.fixi.fixi.repository.CategoriaRepository;
 import com.fixi.fixi.repository.ClienteRepository;
 import com.fixi.fixi.repository.PrestadorCategoriaRepository;
 import com.fixi.fixi.repository.PrestadorRepository;
+import com.fixi.fixi.security.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -42,38 +44,40 @@ public class AutenticacaoService {
     @Autowired
     private PrestadorService prestadorService;
 
-    public UsuarioRespostaDTO loginCliente(LoginRequest loginRequest) {
+    public LoginResponseDTO<UsuarioRespostaDTO> loginCliente(LoginRequest loginRequest) {
         Cliente cliente = clienteRepository.findByEmail(loginRequest.getEmail());
 
-        if (cliente == null) {
-            throw new RuntimeException("Cliente não encontrado");
-        }
-
+        if (cliente == null) throw new RuntimeException("Cliente não encontrado");
         if (!BCrypt.checkpw(loginRequest.getSenha(), cliente.getSenha())) {
             throw new RuntimeException("Senha incorreta");
         }
 
-        return new UsuarioRespostaDTO(
+        UsuarioRespostaDTO usuarioDTO = new UsuarioRespostaDTO(
                 cliente.getId(),
                 cliente.getNome(),
                 cliente.getEmail(),
-                Arrays.toString(cliente.getFoto())
+                cliente.getFoto() != null ? Base64.getEncoder().encodeToString(cliente.getFoto()) : null
         );
+
+        String token = JwtUtil.generateToken(String.valueOf(cliente.getId()), "CLIENTE");
+
+        return new LoginResponseDTO<>(token, usuarioDTO);
     }
 
-    public PrestadorResponseDTO loginPrestador(LoginRequest loginRequest) {
+    public LoginResponseDTO<PrestadorResponseDTO> loginPrestador(LoginRequest loginRequest) {
         Prestador prestador = prestadorRepository.findByEmail(loginRequest.getEmail());
 
-        if (prestador == null) {
-            throw new RuntimeException("Prestador não encontrado");
-        }
-
+        if (prestador == null) throw new RuntimeException("Prestador não encontrado");
         if (!BCrypt.checkpw(loginRequest.getSenha(), prestador.getSenha())) {
             throw new RuntimeException("Senha incorreta");
         }
 
-        // 🔹 Usa o método do PrestadorService, que já monta DTO com categorias + média
-        return prestadorService.toDTO(prestador);
+        PrestadorResponseDTO usuarioDTO = prestadorService.toDTO(prestador);
+
+
+        String token = JwtUtil.generateToken(String.valueOf(prestador.getId()), "PRESTADOR");
+
+        return new LoginResponseDTO<>(token, usuarioDTO);
     }
 
     public UsuarioRespostaDTO cadastroCliente(RegistroClienteRequest cadastroRequest) {

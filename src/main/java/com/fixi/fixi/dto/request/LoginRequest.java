@@ -12,5 +12,5 @@ public class LoginRequest {
     public void setSenha(String senha) { this.senha = senha; }
 
     public String getTipoUsuario() { return tipoUsuario; }
-    public void setTipoUsuariopo(String tipoUsuariopo) { this.tipoUsuario = tipoUsuario; }
+    public void setTipoUsuario(String tipoUsuario) { this.tipoUsuario = tipoUsuario; }
 }

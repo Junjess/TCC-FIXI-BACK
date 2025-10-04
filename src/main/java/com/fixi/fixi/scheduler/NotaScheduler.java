@@ -21,7 +21,7 @@ public class NotaScheduler {
             avaliacaoService.calcularNotasMensais();
         };
 
-        // executa agora e repete a cada 30 dias
-        scheduler.scheduleAtFixedRate(tarefa, 0, 30, TimeUnit.DAYS);
+        // executa agora e repete a cada 60 dias
+        scheduler.scheduleAtFixedRate(tarefa, 0, 60, TimeUnit.DAYS);
     }
 }

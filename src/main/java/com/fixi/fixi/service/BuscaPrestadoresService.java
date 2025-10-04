@@ -5,33 +5,29 @@ import com.fixi.fixi.dto.response.BuscaPrestadoresRespostaDTO;
 import com.fixi.fixi.dto.response.CategoriaDescricaoDTO;
 import com.fixi.fixi.dto.response.PrestadorDetalhesResponseDTO;
 import com.fixi.fixi.model.Avaliacao;
+import com.fixi.fixi.model.AvaliacaoPlataforma;
 import com.fixi.fixi.model.Prestador;
+import com.fixi.fixi.repository.AvaliacaoPlataformaRepository;
 import com.fixi.fixi.repository.AvaliacaoRepository;
 import com.fixi.fixi.repository.BuscaPrestadoresRepository;
 import com.fixi.fixi.repository.ClienteRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.Base64;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class BuscaPrestadoresService {
 
     private final ClienteRepository clienteRepository;
     private final BuscaPrestadoresRepository buscaRepo;
+    private final AvaliacaoPlataformaRepository avaliacaoPlataformaRepository;
     private final AvaliacaoRepository avaliacaoRepository;
-    private final AvaliacaoPlataformaService avaliacaoPlataformaService; // ✅ novo
-
-    public BuscaPrestadoresService(ClienteRepository clienteRepository,
-                                   BuscaPrestadoresRepository buscaRepo,
-                                   AvaliacaoRepository avaliacaoRepository,
-                                   AvaliacaoPlataformaService avaliacaoPlataformaService) {
-        this.clienteRepository = clienteRepository;
-        this.buscaRepo = buscaRepo;
-        this.avaliacaoRepository = avaliacaoRepository;
-        this.avaliacaoPlataformaService = avaliacaoPlataformaService;
-    }
+    private final AvaliacaoPlataformaService avaliacaoPlataformaService;
 
     public List<BuscaPrestadoresRespostaDTO> listarPrestadoresFiltrados(
             Long idCliente,
@@ -82,6 +78,14 @@ public class BuscaPrestadoresService {
                     ? Base64.getEncoder().encodeToString(p.getFoto())
                     : null;
 
+            Double notaPlataforma = avaliacaoPlataformaRepository
+                    .findByPrestadorOrderByPeriodoReferenciaDescDataGeracaoDesc(p)
+                    .stream()
+                    .findFirst()
+                    .map(AvaliacaoPlataforma::getNotaFinal)
+                    .orElse(0.0);
+
+
             return new BuscaPrestadoresRespostaDTO(
                     p.getId(),
                     p.getNome(),
@@ -90,7 +94,9 @@ public class BuscaPrestadoresService {
                     p.getCidade(),
                     p.getEstado(),
                     categoriasDTO,
-                    mediaClientes
+                    mediaClientes,
+                    notaPlataforma,
+                    p.getSobre()
             );
         }).collect(Collectors.toList());
     }
@@ -99,7 +105,6 @@ public class BuscaPrestadoresService {
         Prestador prestador = buscaRepo.findByIdFetchCategorias(id)
                 .orElseThrow(() -> new RuntimeException("Prestador não encontrado"));
 
-        // 🔹 Busca todas as avaliações do prestador (clientes)
         List<Avaliacao> avaliacoes = avaliacaoRepository.findByAgendamentoPrestadorId(prestador.getId());
 
         List<AvaliacaoResponseDTO> avaliacoesDTO = avaliacoes.stream()
@@ -128,12 +133,13 @@ public class BuscaPrestadoresService {
                 ? Base64.getEncoder().encodeToString(prestador.getFoto())
                 : null;
 
-        // ✅ Busca última nota da plataforma
-        Double notaPlataforma = avaliacaoPlataformaService.buscarUltimaNota(prestador)
-                .map(av -> av.getNotaFinal())
+        Double notaPlataforma = avaliacaoPlataformaRepository
+                .findByPrestadorOrderByPeriodoReferenciaDescDataGeracaoDesc(prestador)
+                .stream()
+                .findFirst()
+                .map(AvaliacaoPlataforma::getNotaFinal)
                 .orElse(0.0);
 
-        // Retorna os dados completos
         return new PrestadorDetalhesResponseDTO(
                 prestador.getId(),
                 prestador.getNome(),
@@ -144,7 +150,8 @@ public class BuscaPrestadoresService {
                 categoriasDTO,
                 mediaClientes,
                 avaliacoesDTO,
-                notaPlataforma // ✅ novo campo
+                notaPlataforma,
+                prestador.getSobre()
         );
     }
 }

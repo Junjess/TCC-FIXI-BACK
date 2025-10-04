@@ -5,14 +5,13 @@ import com.fixi.fixi.dto.response.AvaliacaoResponseDTO;
 import com.fixi.fixi.dto.response.CategoriaDescricaoDTO;
 import com.fixi.fixi.dto.response.PrestadorDetalhesResponseDTO;
 import com.fixi.fixi.dto.response.PrestadorResponseDTO;
+import com.fixi.fixi.model.AvaliacaoPlataforma;
 import com.fixi.fixi.model.Categoria;
 import com.fixi.fixi.model.Prestador;
 import com.fixi.fixi.model.PrestadorCategoria;
-import com.fixi.fixi.repository.AvaliacaoRepository;
-import com.fixi.fixi.repository.CategoriaRepository;
-import com.fixi.fixi.repository.PrestadorCategoriaRepository;
-import com.fixi.fixi.repository.PrestadorRepository;
+import com.fixi.fixi.repository.*;
 import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -21,21 +20,19 @@ import java.util.Base64;
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class PrestadorService {
 
     private final PrestadorRepository prestadorRepository;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    private final AvaliacaoPlataformaRepository avaliacaoPlataformaRepository;
+
     @Autowired
     private AvaliacaoRepository avaliacaoRepository;
     @Autowired
     private PrestadorCategoriaRepository prestadorCategoriaRepository;
     @Autowired
     private CategoriaRepository categoriaRepository;
-
-    public PrestadorService(PrestadorRepository prestadorRepository, AvaliacaoRepository avaliacaoRepository) {
-        this.prestadorRepository = prestadorRepository;
-        this.avaliacaoRepository = avaliacaoRepository;
-    }
 
     @Transactional
     public PrestadorResponseDTO atualizarPrestador(Long id, PrestadorUpdateDTO dto) {
@@ -60,6 +57,9 @@ public class PrestadorService {
 
         if (dto.getSenha() != null && !dto.getSenha().isBlank()) {
             prestador.setSenha(passwordEncoder.encode(dto.getSenha()));
+        }
+        if(dto.getSobre() != null && !dto.getSobre().isBlank()) {
+            prestador.setSobre(dto.getSobre());
         }
 
         // Atualizar categorias
@@ -112,7 +112,8 @@ public class PrestadorService {
                 p.getCep(),
                 fotoBase64,
                 media,
-                categorias
+                categorias,
+                p.getSobre()
         );
     }
 
@@ -155,7 +156,12 @@ public class PrestadorService {
                 : null;
 
         // Nota da plataforma (aqui você pode depois trocar pelo cálculo real da Avaliação IA)
-        Double notaPlataforma = mediaAvaliacao;
+        Double notaPlataforma = avaliacaoPlataformaRepository
+                .findByPrestadorOrderByPeriodoReferenciaDescDataGeracaoDesc(prestador)
+                .stream()
+                .findFirst()
+                .map(AvaliacaoPlataforma::getNotaFinal)
+                .orElse(0.0);
 
         return new PrestadorDetalhesResponseDTO(
                 prestador.getId(),
@@ -167,7 +173,8 @@ public class PrestadorService {
                 categorias,
                 mediaAvaliacao,
                 avaliacoes,
-                notaPlataforma
+                notaPlataforma,
+                prestador.getSobre()
         );
     }
 }
