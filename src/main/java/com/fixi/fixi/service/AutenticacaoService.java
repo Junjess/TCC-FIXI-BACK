@@ -17,9 +17,11 @@ import com.fixi.fixi.repository.PrestadorCategoriaRepository;
 import com.fixi.fixi.repository.PrestadorRepository;
 import com.fixi.fixi.security.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -45,11 +47,17 @@ public class AutenticacaoService {
     private PrestadorService prestadorService;
 
     public LoginResponseDTO<UsuarioRespostaDTO> loginCliente(LoginRequest loginRequest) {
+        if (loginRequest.getEmail() == null || loginRequest.getEmail().isBlank() ||
+                loginRequest.getSenha() == null || loginRequest.getSenha().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "E-mail ou senha vazios");
+        }
         Cliente cliente = clienteRepository.findByEmail(loginRequest.getEmail());
+        if (cliente == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Cliente não encontrado");
+        }
 
-        if (cliente == null) throw new RuntimeException("Cliente não encontrado");
         if (!BCrypt.checkpw(loginRequest.getSenha(), cliente.getSenha())) {
-            throw new RuntimeException("Senha incorreta");
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Senha incorreta");
         }
 
         UsuarioRespostaDTO usuarioDTO = new UsuarioRespostaDTO(
@@ -65,11 +73,15 @@ public class AutenticacaoService {
     }
 
     public LoginResponseDTO<PrestadorResponseDTO> loginPrestador(LoginRequest loginRequest) {
+        if (loginRequest.getEmail() == null || loginRequest.getEmail().isBlank() ||
+                loginRequest.getSenha() == null || loginRequest.getSenha().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "E-mail ou senha vazios");
+        }
         Prestador prestador = prestadorRepository.findByEmail(loginRequest.getEmail());
 
-        if (prestador == null) throw new RuntimeException("Prestador não encontrado");
+        if (prestador == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Prestador não encontrado");
         if (!BCrypt.checkpw(loginRequest.getSenha(), prestador.getSenha())) {
-            throw new RuntimeException("Senha incorreta");
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Senha incorreta");
         }
 
         PrestadorResponseDTO usuarioDTO = prestadorService.toDTO(prestador);
@@ -84,13 +96,13 @@ public class AutenticacaoService {
         Optional<Cliente> clienteExistente =
                 Optional.ofNullable(clienteRepository.findByEmail(cadastroRequest.getEmail()));
         if (clienteExistente.isPresent()) {
-            throw new RuntimeException("Email já cadastrado");
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Email já cadastrado");
         }
 
         // Busca cidade e estado via ViaCEP
         Map<String, Object> dadosCep = viaCepService.buscarCep(cadastroRequest.getCep());
         if (dadosCep == null || dadosCep.containsKey("erro")) {
-            throw new RuntimeException("CEP inválido ou não encontrado");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "CEP inválido ou não encontrado");
         }
 
         Cliente cliente = new Cliente();
@@ -119,7 +131,7 @@ public class AutenticacaoService {
         Optional<Prestador> prestadorExistente =
                 Optional.ofNullable(prestadorRepository.findByEmail(cadastroRequest.getEmail()));
         if (prestadorExistente.isPresent()) {
-            throw new RuntimeException("Email já cadastrado");
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Email já cadastrado");
         }
 
         // Criar prestador
@@ -141,7 +153,7 @@ public class AutenticacaoService {
 
         for (Long idCategoria : cadastroRequest.getCategoriasIds()) {
             Categoria categoria = categoriaRepository.findById(idCategoria)
-                    .orElseThrow(() -> new RuntimeException("Categoria não encontrada: " + idCategoria));
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,  "Categoria não encontrada: " + idCategoria));
 
             PrestadorCategoria pc = new PrestadorCategoria();
             pc.setPrestador(prestador);

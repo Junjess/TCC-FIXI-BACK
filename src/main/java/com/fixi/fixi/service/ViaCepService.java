@@ -2,6 +2,8 @@ package com.fixi.fixi.service;
 
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Map;
 
@@ -16,7 +18,11 @@ public class ViaCepService {
         try {
             return restTemplate.getForObject(URL, Map.class, cep);
         } catch (Exception e) {
-            throw new RuntimeException("Erro ao consultar ViaCEP", e);
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_GATEWAY,
+                    "Erro ao consultar o serviço ViaCEP.",
+                    e
+            );
         }
     }
 }

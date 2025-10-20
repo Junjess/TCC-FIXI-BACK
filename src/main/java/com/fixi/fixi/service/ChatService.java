@@ -7,8 +7,10 @@ import com.fixi.fixi.model.Mensagem;
 import com.fixi.fixi.repository.ClienteRepository;
 import com.fixi.fixi.repository.ConversaRepository;
 import com.fixi.fixi.repository.MensagemRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -36,7 +38,12 @@ public class ChatService {
             conversaRepository.delete(conversas.get(0));
         }
         Cliente cliente = clienteRepository.findById(clienteId)
-                .orElseThrow(() -> new RuntimeException("Cliente não encontrado: " + clienteId));
+                .orElseThrow(() ->
+                        new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
+                                "Cliente não encontrado."
+                        )
+                );
 
         Conversa conversa = new Conversa();
         conversa.setTitulo("");
@@ -47,7 +54,12 @@ public class ChatService {
     @Transactional
     public Mensagem salvarMensagem(Long conversaId, Autor autor, String texto) {
         Conversa conversa = conversaRepository.findById(conversaId)
-                .orElseThrow(() -> new RuntimeException("Conversa não encontrada"));
+                .orElseThrow(() ->
+                        new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
+                                "Conversa não encontrada."
+                        )
+                );
 
         // regra de limite de 5 mensagens
         long countMensagens = mensagemRepository.countByConversa_Id(conversaId);
@@ -85,7 +97,10 @@ public class ChatService {
     @Transactional
     public void excluirConversa(Long conversaId) {
         if (!conversaRepository.existsById(conversaId)) {
-            throw new RuntimeException("Conversa não encontrada: " + conversaId);
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
+                    "Conversa não encontrada."
+            );
         }
 
         // Exclui mensagens primeiro, se não tiver cascade

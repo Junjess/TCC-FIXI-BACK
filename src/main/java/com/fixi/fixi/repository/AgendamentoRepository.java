@@ -63,24 +63,6 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> 
             @Param("to") LocalDate to
     );
 
-    /**
-     * Verifica se já existe agendamento ativo entre cliente e prestador no mesmo dia.
-     */
-    boolean existsByClienteIdAndPrestadorIdAndDataAgendamentoAndStatusIn(
-            Long clienteId,
-            Long prestadorId,
-            LocalDate dataAgendamento,
-            List<StatusAgendamento> status
-    );
-
-    boolean existsByClienteIdAndPrestadorIdAndDataAgendamentoAndPeriodoAndStatusIn(
-            Long clienteId,
-            Long prestadorId,
-            LocalDate data,
-            Periodo periodo,
-            List<StatusAgendamento> status
-    );
-
     boolean existsByPrestadorIdAndDataAgendamentoAndPeriodoAndStatusIn(
             Long prestadorId,
             LocalDate data,
@@ -101,11 +83,15 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> 
             """)
     List<Agendamento> findPendentesByPrestadorId(@Param("prestadorId") Long prestadorId);
 
-    /** Total de agendamentos de um prestador */
+    /**
+     * Total de agendamentos de um prestador
+     */
     @Query("SELECT COUNT(a) FROM Agendamento a WHERE a.prestador = :prestador")
     long countByPrestador(@Param("prestador") Prestador prestador);
 
-    /** Total de agendamentos por status (ACEITO, CANCELADO, etc.) */
+    /**
+     * Total de agendamentos por status (ACEITO, CANCELADO, etc.)
+     */
     @Query("SELECT COUNT(a) FROM Agendamento a WHERE a.prestador = :prestador AND a.status = :status")
     long countByPrestadorAndStatus(@Param("prestador") Prestador prestador,
                                    @Param("status") StatusAgendamento status);
@@ -113,5 +99,7 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> 
     @Query("SELECT av.descricao FROM Agendamento a JOIN a.avaliacao av WHERE a.prestador.id = :prestadorId AND av.descricao IS NOT NULL")
     List<String> findComentariosByPrestador(@Param("prestadorId") Long prestadorId);
 
-    List<Agendamento> findByStatus(StatusAgendamento status);
+    @Query("SELECT COUNT(a) FROM Agendamento a WHERE a.prestador.id = :idPrestador AND a.status = 'PENDENTE'")
+    int contarPendentesPorPrestador(@Param("idPrestador") Long idPrestador);
+
 }

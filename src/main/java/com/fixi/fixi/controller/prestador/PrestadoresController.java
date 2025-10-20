@@ -53,4 +53,5 @@ public class PrestadoresController {
     public ResponseEntity<PrestadorDetalhesResponseDTO> buscarPorId(@PathVariable Long id) {
         return ResponseEntity.ok(prestadorService.buscarPorId(id));
     }
+
 }

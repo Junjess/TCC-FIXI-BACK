@@ -12,7 +12,9 @@ import com.fixi.fixi.repository.AvaliacaoRepository;
 import com.fixi.fixi.repository.BuscaPrestadoresRepository;
 import com.fixi.fixi.repository.ClienteRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Base64;
 import java.util.List;
@@ -38,7 +40,12 @@ public class BuscaPrestadoresService {
     ) {
         // 🔹 Se não veio cidade/estado no request, pega do cliente logado
         var cliente = clienteRepository.findById(idCliente)
-                .orElseThrow(() -> new RuntimeException("Cliente não encontrado"));
+                .orElseThrow(() ->
+                        new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
+                                "Cliente não encontrado."
+                        )
+                );
 
         String cidadeFiltro = (cidade != null && !cidade.isBlank()) ? cidade : cliente.getCidade();
         String estadoFiltro = (estado != null && !estado.isBlank()) ? estado : cliente.getEstado();
@@ -103,7 +110,12 @@ public class BuscaPrestadoresService {
 
     public PrestadorDetalhesResponseDTO buscarPrestadorPorId(Long id) {
         Prestador prestador = buscaRepo.findByIdFetchCategorias(id)
-                .orElseThrow(() -> new RuntimeException("Prestador não encontrado"));
+                .orElseThrow(() ->
+                        new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
+                                "Prestador não encontrado."
+                        )
+                );
 
         List<Avaliacao> avaliacoes = avaliacaoRepository.findByAgendamentoPrestadorId(prestador.getId());
 

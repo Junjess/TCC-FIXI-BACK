@@ -6,7 +6,9 @@ import com.fixi.fixi.model.Agendamento;
 import com.fixi.fixi.model.Avaliacao;
 import com.fixi.fixi.repository.AgendamentoRepository;
 import com.fixi.fixi.repository.AvaliacaoRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -25,10 +27,18 @@ public class AvaliacaoService {
 
     public AvaliacaoResponseDTO salvarAvaliacao(AvaliacaoRequest dto) {
         Agendamento agendamento = agendamentoRepository.findById(dto.getAgendamentoId())
-                .orElseThrow(() -> new RuntimeException("Agendamento não encontrado"));
+                .orElseThrow(() ->
+                        new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
+                                "Agendamento não encontrado."
+                        )
+                );
 
         if (avaliacaoRepository.findByAgendamentoId(agendamento.getId()).isPresent()) {
-            throw new RuntimeException("Este agendamento já foi avaliado.");
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Este agendamento já foi avaliado."
+            );
         }
 
         Avaliacao avaliacao = new Avaliacao();

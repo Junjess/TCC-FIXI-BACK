@@ -83,7 +83,6 @@ public class AvaliacaoPlataformaService {
 
     /**
      * Taxa de cancelamento = (1 - (cancelados / total)) * 5.
-     * Quanto menos cancelamentos, maior a nota.
      */
     private Double calcularTaxaCancelamento(Prestador prestador) {
         long total = agendamentoRepository.countByPrestador(prestador);

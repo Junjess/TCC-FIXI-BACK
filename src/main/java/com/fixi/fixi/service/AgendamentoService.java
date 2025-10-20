@@ -11,14 +11,15 @@ import jakarta.mail.internet.MimeMessage;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 
@@ -60,7 +61,10 @@ public class AgendamentoService {
                 enviarEmailPrestador(prestador, agendamento);
             }
         } else {
-            System.out.println("⚠️ Não enviou e-mail porque cliente ou agendamento veio null");
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Não foi possível enviar o e-mail: cliente ou agendamento estão nulos."
+            );
         }
     }
 
@@ -78,7 +82,10 @@ public class AgendamentoService {
                 enviarEmailCliente(cliente, agendamento);
             }
         } else {
-            System.out.println("⚠️ Não enviou e-mail porque prestador ou agendamento veio null");
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Não foi possível enviar o e-mail: prestador ou agendamento estão nulos."
+            );
         }
     }
 
@@ -88,13 +95,22 @@ public class AgendamentoService {
      */
     private void cancelarAgendamento(Long agendamentoId, Long usuarioId, boolean isPrestador) {
         Agendamento ag = agendamentoRepository.findById(agendamentoId)
-                .orElseThrow(() -> new RuntimeException("Agendamento não encontrado"));
+                .orElseThrow(() ->
+                        new ResponseStatusException(HttpStatus.NOT_FOUND, "Agendamento não encontrado")
+                );
 
         if (isPrestador && !ag.getPrestador().getId().equals(usuarioId)) {
-            throw new RuntimeException("Prestador não autorizado a cancelar este agendamento");
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Prestador não autorizado a cancelar este agendamento."
+            );
         }
+
         if (!isPrestador && !ag.getCliente().getId().equals(usuarioId)) {
-            throw new RuntimeException("Cliente não autorizado a cancelar este agendamento");
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Cliente não autorizado a cancelar este agendamento."
+            );
         }
 
         ag.setStatus(StatusAgendamento.CANCELADO);
@@ -122,9 +138,12 @@ public class AgendamentoService {
             helper.setSubject("Agendamento cancelado pelo prestador");
             helper.setText(html, true);
             mailSender.send(msg);
-            System.out.println("✅ Email enviado para cliente");
         } catch (Exception e) {
-            throw new RuntimeException("Failed to send email", e);
+            throw new ResponseStatusException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Falha ao enviar e-mail.",
+                    e
+            );
         }
     }
 
@@ -147,9 +166,12 @@ public class AgendamentoService {
             helper.setSubject("Agendamento cancelado pelo cliente");
             helper.setText(html, true);
             mailSender.send(msg);
-            System.out.println("✅ Email enviado para prestador");
         } catch (Exception e) {
-            throw new RuntimeException("Failed to send email", e);
+            throw new ResponseStatusException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Falha ao enviar e-mail.",
+                    e
+            );
         }
     }
 
@@ -178,22 +200,29 @@ public class AgendamentoService {
             Double valorSugerido
     ) {
         var prestador = prestadorRepository.findById(prestadorId)
-                .orElseThrow(() -> new RuntimeException("Prestador não encontrado"));
+                .orElseThrow(() ->
+                        new ResponseStatusException(HttpStatus.NOT_FOUND, "Prestador não encontrado")
+                );
+
         var cliente = clienteRepository.findById(clienteId)
-                .orElseThrow(() -> new RuntimeException("Cliente não encontrado"));
+                .orElseThrow(() ->
+                        new ResponseStatusException(HttpStatus.NOT_FOUND, "Cliente não encontrado")
+                );
 
         var categoria = categoriaRepository.findById(idCategoria)
-                .orElseThrow(() -> new RuntimeException("Categoria não encontrada"));
+                .orElseThrow(() ->
+                        new ResponseStatusException(HttpStatus.NOT_FOUND, "Categoria não encontrada")
+                );
 
-        if (categoria == null) {
-            throw new RuntimeException("Categoria não encontrada");
-        }
 
         // verifica se o prestador possui a categoria
         boolean prestadorPossuiCategoria = prestador.getCategorias().stream()
                 .anyMatch(pc -> pc.getCategoria().getId().equals(idCategoria));
         if (!prestadorPossuiCategoria) {
-            throw new RuntimeException("Prestador não atende a categoria selecionada.");
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Prestador não atende à categoria selecionada."
+            );
         }
 
         // verifica disponibilidade
@@ -204,7 +233,10 @@ public class AgendamentoService {
                 List.of(StatusAgendamento.PENDENTE, StatusAgendamento.ACEITO)
         );
         if (prestadorOcupado) {
-            throw new RuntimeException("Prestador já possui agendamento nesse período.");
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Prestador já possui agendamento nesse período."
+            );
         }
 
         Agendamento ag = new Agendamento();
@@ -292,10 +324,15 @@ public class AgendamentoService {
     @Transactional
     public void aceitarAgendamento(Long prestadorId, Long agendamentoId) {
         Agendamento agendamento = agendamentoRepository.findById(agendamentoId)
-                .orElseThrow(() -> new RuntimeException("Agendamento não encontrado"));
+                .orElseThrow(() ->
+                        new ResponseStatusException(HttpStatus.NOT_FOUND, "Agendamento não encontrado")
+                );
 
         if (!agendamento.getPrestador().getId().equals(prestadorId)) {
-            throw new RuntimeException("Prestador não autorizado para esse agendamento.");
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Prestador não autorizado para esse agendamento."
+            );
         }
 
         agendamento.setStatus(StatusAgendamento.ACEITO);
@@ -314,14 +351,21 @@ public class AgendamentoService {
     @Transactional
     public void recusarAgendamento(Long prestadorId, Long agendamentoId) {
         Agendamento agendamento = agendamentoRepository.findById(agendamentoId)
-                .orElseThrow(() -> new RuntimeException("Agendamento não encontrado"));
+                .orElseThrow(() ->
+                        new ResponseStatusException(HttpStatus.NOT_FOUND, "Agendamento não encontrado")
+                );
 
         if (!agendamento.getPrestador().getId().equals(prestadorId)) {
-            throw new RuntimeException("Prestador não autorizado para esse agendamento.");
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Prestador não autorizado para esse agendamento."
+            );
         }
 
-        agendamento.setStatus(StatusAgendamento.NEGADO); // 🔹 corrigido
+        agendamento.setStatus(StatusAgendamento.NEGADO);
         agendamentoRepository.save(agendamento);
+
+        enviarEmailAgendamentoRecusadoCliente(agendamento.getCliente(), agendamento);
     }
 
     /**
@@ -373,6 +417,34 @@ public class AgendamentoService {
         }
     }
 
+    public void enviarEmailAgendamentoRecusadoCliente(Cliente cliente, Agendamento agendamento) {
+        String html = """
+                <div style="font-family:sans-serif">
+                  <p>Olá <b>%s</b>, sua solicitação de agendamento com o prestador <b>%s</b> foi recusada.</p>
+                  <p>Detalhes do agendamento:</p>
+                  <p> Data: <b>%s</b> </p>
+                  <p> Período: <b>%s</b> </p>
+                  <p>Você pode tentar realizar um novo agendamento na plataforma.</p>
+                </div>
+                """.formatted(cliente.getNome(), agendamento.getPrestador().getNome(),
+                agendamento.getDataAgendamento(), agendamento.getPeriodo());
+
+        try {
+            MimeMessage msg = mailSender.createMimeMessage();
+            var helper = new MimeMessageHelper(msg, true, "UTF-8");
+            helper.setFrom(from);
+            helper.setTo(cliente.getEmail());
+            helper.setSubject("Agendamento Recusado");
+            helper.setText(html, true);
+            mailSender.send(msg);
+        } catch (Exception e) {
+            throw new ResponseStatusException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Falha ao enviar e-mail para o cliente.", e
+            );
+        }
+    }
+
     public void enviarEmailExpiradoCliente(Cliente cliente, Agendamento agendamento) {
         String html = """
                 <div style="font-family:sans-serif">
@@ -393,9 +465,11 @@ public class AgendamentoService {
             helper.setSubject("Agendamento expirado");
             helper.setText(html, true);
             mailSender.send(msg);
-            System.out.println("📩 Email de expiração enviado para cliente");
         } catch (Exception e) {
-            throw new RuntimeException("Falha ao enviar email para cliente (expirado)", e);
+            throw new ResponseStatusException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Falha ao enviar e-mail para o cliente.", e
+            );
         }
     }
 
@@ -418,27 +492,29 @@ public class AgendamentoService {
             helper.setSubject("Agendamento expirado");
             helper.setText(html, true);
             mailSender.send(msg);
-            System.out.println("📩 Email de expiração enviado para prestador");
         } catch (Exception e) {
-            throw new RuntimeException("Falha ao enviar email para prestador (expirado)", e);
+            throw new ResponseStatusException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Falha ao enviar e-mail para o prestador.", e
+            );
         }
     }
 
     public void enviarEmailAceiteCliente(Cliente cliente, Prestador prestador, Agendamento agendamento) {
         String html = """
-            <div style="font-family:sans-serif">
-              <p>Olá <b>%s</b>, seu agendamento com o prestador <b>%s</b> foi <span style="color:green">ACEITO</span>!</p>
-              <p><b>Entre em contato com o prestador para combinar os detalhes:</b></p>
-              <p>📞 Telefone: <b>%s</b></p>
-              <p>📧 E-mail: <b>%s</b></p>
-              <br/>
-              <p>Detalhes do agendamento:</p>
-              <p> Data: <b>%s</b> </p>
-              <p> Período: <b>%s</b> </p>
-              <p> Descrição do serviço: <b>%s</b> </p>
-              <p><i>A comunicação deve ser feita diretamente com o prestador.</i></p>
-            </div>
-            """.formatted(cliente.getNome(), prestador.getNome(), prestador.getTelefone(), prestador.getEmail(),
+                <div style="font-family:sans-serif">
+                  <p>Olá <b>%s</b>, seu agendamento com o prestador <b>%s</b> foi <span style="color:green">ACEITO</span>!</p>
+                  <p><b>Entre em contato com o prestador para combinar os detalhes:</b></p>
+                  <p>📞 Telefone: <b>%s</b></p>
+                  <p>📧 E-mail: <b>%s</b></p>
+                  <br/>
+                  <p>Detalhes do agendamento:</p>
+                  <p> Data: <b>%s</b> </p>
+                  <p> Período: <b>%s</b> </p>
+                  <p> Descrição do serviço: <b>%s</b> </p>
+                  <p><i>A comunicação deve ser feita diretamente com o prestador.</i></p>
+                </div>
+                """.formatted(cliente.getNome(), prestador.getNome(), prestador.getTelefone(), prestador.getEmail(),
                 agendamento.getDataAgendamento(), agendamento.getPeriodo(), agendamento.getDescricaoServico());
 
         try {
@@ -446,30 +522,32 @@ public class AgendamentoService {
             var helper = new MimeMessageHelper(msg, true, "UTF-8");
             helper.setFrom(from);
             helper.setTo(cliente.getEmail());
-            helper.setSubject("✅ Agendamento aceito pelo prestador");
+            helper.setSubject("Agendamento aceito pelo prestador");
             helper.setText(html, true);
             mailSender.send(msg);
-            System.out.println("📩 Email de aceite enviado para cliente");
         } catch (Exception e) {
-            throw new RuntimeException("Falha ao enviar email de aceite para cliente", e);
+            throw new ResponseStatusException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Falha ao enviar e-mail de aceite para o cliente.", e
+            );
         }
     }
 
     public void enviarEmailAceitePrestador(Prestador prestador, Cliente cliente, Agendamento agendamento) {
         String html = """
-            <div style="font-family:sans-serif">
-              <p>Olá <b>%s</b>, você aceitou o agendamento do cliente <b>%s</b>.</p>
-              <p><b>Entre em contato com o cliente para combinar os detalhes:</b></p>
-              <p>📞 Telefone: <b>%s</b></p>
-              <p>📧 E-mail: <b>%s</b></p>
-              <br/>
-              <p>Detalhes do agendamento:</p>
-              <p> Data: <b>%s</b> </p>
-              <p> Período: <b>%s</b> </p>
-              <p> Descrição do serviço: <b>%s</b> </p>
-              <p><i>A comunicação deve ser feita diretamente com o cliente.</i></p>
-            </div>
-            """.formatted(prestador.getNome(), cliente.getNome(), cliente.getTelefone(), cliente.getEmail(),
+                <div style="font-family:sans-serif">
+                  <p>Olá <b>%s</b>, você aceitou o agendamento do cliente <b>%s</b>.</p>
+                  <p><b>Entre em contato com o cliente para combinar os detalhes:</b></p>
+                  <p>📞 Telefone: <b>%s</b></p>
+                  <p>📧 E-mail: <b>%s</b></p>
+                  <br/>
+                  <p>Detalhes do agendamento:</p>
+                  <p> Data: <b>%s</b> </p>
+                  <p> Período: <b>%s</b> </p>
+                  <p> Descrição do serviço: <b>%s</b> </p>
+                  <p><i>A comunicação deve ser feita diretamente com o cliente.</i></p>
+                </div>
+                """.formatted(prestador.getNome(), cliente.getNome(), cliente.getTelefone(), cliente.getEmail(),
                 agendamento.getDataAgendamento(), agendamento.getPeriodo(), agendamento.getDescricaoServico());
 
         try {
@@ -477,12 +555,14 @@ public class AgendamentoService {
             var helper = new MimeMessageHelper(msg, true, "UTF-8");
             helper.setFrom(from);
             helper.setTo(prestador.getEmail());
-            helper.setSubject("📌 Confirmação de aceite do agendamento");
+            helper.setSubject("Confirmação de aceite do agendamento");
             helper.setText(html, true);
             mailSender.send(msg);
-            System.out.println("📩 Email de aceite enviado para prestador");
         } catch (Exception e) {
-            throw new RuntimeException("Falha ao enviar email de aceite para prestador", e);
+            throw new ResponseStatusException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Falha ao enviar e-mail de aceite para o prestador.", e
+            );
         }
     }
 

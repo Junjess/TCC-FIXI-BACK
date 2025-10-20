@@ -13,8 +13,10 @@ import com.fixi.fixi.repository.*;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Base64;
 import java.util.List;
@@ -38,13 +40,21 @@ public class PrestadorService {
     public PrestadorResponseDTO atualizarPrestador(Long id, PrestadorUpdateDTO dto) {
         System.out.println("Id:" + id);
         Prestador prestador = prestadorRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Prestador não encontrado"));
+                .orElseThrow(() ->
+                        new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
+                                "Prestador não encontrado."
+                        )
+                );
 
         // Dados básicos
         if (dto.getEmail() != null) {
             Prestador existente = prestadorRepository.findByEmail(dto.getEmail());
             if (existente != null && !existente.getId().equals(id)) {
-                throw new RuntimeException("E-mail já está em uso por outro prestador.");
+                throw new ResponseStatusException(
+                        HttpStatus.CONFLICT,
+                        "E-mail já está em uso por outro prestador."
+                );
             }
             prestador.setEmail(dto.getEmail());
         }
@@ -58,7 +68,7 @@ public class PrestadorService {
         if (dto.getSenha() != null && !dto.getSenha().isBlank()) {
             prestador.setSenha(passwordEncoder.encode(dto.getSenha()));
         }
-        if(dto.getSobre() != null && !dto.getSobre().isBlank()) {
+        if (dto.getSobre() != null && !dto.getSobre().isBlank()) {
             prestador.setSobre(dto.getSobre());
         }
 
@@ -68,7 +78,12 @@ public class PrestadorService {
 
             for (PrestadorUpdateDTO.CategoriaDTO categoriaReq : dto.getCategorias()) {
                 Categoria categoria = categoriaRepository.findById(categoriaReq.getId())
-                        .orElseThrow(() -> new RuntimeException("Categoria não encontrada: " + categoriaReq.getId()));
+                        .orElseThrow(() ->
+                                new ResponseStatusException(
+                                        HttpStatus.NOT_FOUND,
+                                        "Categoria não encontrada: " + categoriaReq.getId()
+                                )
+                        );
 
                 PrestadorCategoria pc = new PrestadorCategoria();
                 pc.setPrestador(prestador);
@@ -83,7 +98,12 @@ public class PrestadorService {
 
         // recarrega do banco com categorias atualizadas
         Prestador reloaded = prestadorRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Erro ao recarregar prestador"));
+                .orElseThrow(() ->
+                        new ResponseStatusException(
+                                HttpStatus.INTERNAL_SERVER_ERROR,
+                                "Erro ao recarregar prestador."
+                        )
+                );
 
         return toDTO(reloaded);
     }
@@ -127,7 +147,12 @@ public class PrestadorService {
 
     public PrestadorDetalhesResponseDTO buscarPorId(Long id) {
         Prestador prestador = prestadorRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Prestador não encontrado"));
+                .orElseThrow(() ->
+                        new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
+                                "Prestador não encontrado."
+                        )
+                );
 
         // Categorias
         List<CategoriaDescricaoDTO> categorias = prestador.getCategorias().stream()

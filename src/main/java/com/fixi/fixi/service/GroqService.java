@@ -1,15 +1,17 @@
 package com.fixi.fixi.service;
 
+import com.fixi.fixi.model.Agendamento;
 import com.fixi.fixi.model.Categoria;
 import com.fixi.fixi.model.Prestador;
 import com.fixi.fixi.model.PrestadorCategoria;
+import com.fixi.fixi.repository.AgendamentoRepository;
 import com.fixi.fixi.repository.CategoriaRepository;
 import com.fixi.fixi.repository.PrestadorCategoriaRepository;
-import com.fixi.fixi.repository.PrestadorRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -18,38 +20,38 @@ import java.util.stream.Collectors;
 public class GroqService {
 
     private final WebClient webClient;
-    private final PrestadorRepository prestadorRepository;
     private final CategoriaRepository categoriaRepository;
     private final PrestadorCategoriaRepository prestadorCategoriaRepository;
+    private final AgendamentoRepository agendamentoRepository;
 
-    public GroqService(@Value("${GROQ_API_KEY}") String apiKey, PrestadorRepository prestadorRepository, CategoriaRepository categoriaRepository, PrestadorCategoriaRepository prestadorCategoriaRepository) {
+    public GroqService(@Value("${GROQ_API_KEY}") String apiKey , AgendamentoRepository agendamentoRepository, CategoriaRepository categoriaRepository, PrestadorCategoriaRepository prestadorCategoriaRepository) {
         this.webClient = WebClient.builder()
                 .baseUrl("https://api.groq.com/openai/v1")
                 .defaultHeader("Authorization", "Bearer " + apiKey)
                 .build();
-        this.prestadorRepository = prestadorRepository;
         this.categoriaRepository = categoriaRepository;
+        this.agendamentoRepository = agendamentoRepository;
         this.prestadorCategoriaRepository = prestadorCategoriaRepository;
     }
 
     public String gerarResposta(String mensagemCliente) {
         try {
-            //Classifica a categoria
+            // Classifica a categoria
             String categoriaNome = classificarCategoria(mensagemCliente).trim();
 
-            // 🔹 Se for fora do escopo, já retorna resposta formal
+            // Fora do escopo
             if ("FORA_DO_ESCOPO".equalsIgnoreCase(categoriaNome)) {
                 return "❌ Não posso fornecer informações que não sejam relacionadas aos serviços da plataforma FIXI. "
                         + "Se precisar de ajuda com serviços domésticos, estou à disposição para recomendar um profissional qualificado.";
             }
 
-            // Busca o objeto Categoria pelo nome
+            // Busca a categoria
             Categoria categoria = categoriaRepository.findByNome(categoriaNome);
             if (categoria == null) {
                 return "❌ Não encontrei a categoria **" + categoriaNome + "** na plataforma FIXI.";
             }
 
-            //Busca os prestadores dessa categoria
+            // Busca os prestadores da categoria
             List<PrestadorCategoria> prestadorCategorias =
                     prestadorCategoriaRepository.findByCategoriaId(categoria.getId());
 
@@ -57,6 +59,37 @@ public class GroqService {
                 return "❌ No momento não há prestadores cadastrados na categoria **" + categoriaNome +
                         "**. Por favor, tente novamente mais tarde ou escolha outro serviço disponível na plataforma FIXI.";
             }
+
+            //Calcula a média de avaliações de cada prestador
+            Map<Prestador, Double> medias = new HashMap<>();
+
+            for (PrestadorCategoria pc : prestadorCategorias) {
+                Prestador prestador = pc.getPrestador();
+
+                // busca agendamentos do prestador que possuem avaliação
+                List<Agendamento> agendamentos = agendamentoRepository.findHistoricoByClienteId(prestador.getId());
+
+                double somaNotas = 0.0;
+                int totalNotas = 0;
+
+                for (Agendamento ag : agendamentos) {
+                    if (ag.getAvaliacao() != null && ag.getAvaliacao().getNota() != null) {
+                        somaNotas += ag.getAvaliacao().getNota();
+                        totalNotas++;
+                    }
+                }
+
+                double media = totalNotas > 0 ? somaNotas / totalNotas : 0.0;
+                medias.put(prestador, media);
+            }
+
+            //Seleciona o prestador com maior média
+            Prestador melhorPrestador = medias.entrySet().stream()
+                    .max(Map.Entry.comparingByValue())
+                    .map(Map.Entry::getKey)
+                    .orElse(prestadorCategorias.get(0).getPrestador());
+
+            double melhorMedia = medias.getOrDefault(melhorPrestador, 0.0);
 
             // Monta lista de prestadores
             String listaPrestadores = prestadorCategorias.stream()
@@ -67,24 +100,33 @@ public class GroqService {
                     ))
                     .collect(Collectors.joining("\n"));
 
-            //Monta prompt final (com dicas + prestador recomendado)
+            // Destaque do melhor avaliado
+            String destaque = """
+                ⭐ **Melhor avaliado nesta categoria:** %s  
+                Média de avaliações: %.1f ⭐  
+                [Ver perfil](http://localhost:3000/prestador/%d)
+                """.formatted(melhorPrestador.getNome(), melhorMedia, melhorPrestador.getId());
+
+            // Prompt final
             String prompt = """
-                    Você é uma IA de suporte para o aplicativo de serviços domésticos FIXI.
-                    Só pode responder perguntas relacionadas a serviços da plataforma.
-                    
-                    Profissionais disponíveis no sistema (use apenas estes para recomendar):
-                    %s
-                    
-                    O cliente perguntou: "%s"
-                    
-                    Monte uma resposta em português, seguindo este formato:
-                    🚧 Texto introdutório explicando o problema.
-                    🚧 Liste **3 dicas práticas** que o cliente pode tentar resolver ou mitigar o problema.
-                    🚧 No final, recomende um prestador da lista disponível no sistema, citando nome, especialidade e o link do perfil (já fornecido na lista).
-                    
-                    ⚠️ Sempre inclua o link no final da recomendação, no formato Markdown: [Ver perfil](URL).
-                    Use Markdown para formatar em **negrito** e listas numeradas.
-                    """.formatted(listaPrestadores, mensagemCliente);
+                Você é uma IA de suporte para o aplicativo de serviços domésticos FIXI.
+                Só pode responder perguntas relacionadas a serviços da plataforma.
+                
+                Profissionais disponíveis no sistema (use apenas estes para recomendar):
+                %s
+                
+                O cliente perguntou: "%s"
+                
+                Monte uma resposta em português, seguindo este formato:
+                🚧 Texto introdutório explicando o problema.
+                🚧 Liste **3 dicas práticas** que o cliente pode tentar resolver ou mitigar o problema.
+                🚧 No final, recomende o **melhor avaliado** da categoria, incluindo nome, especialidade e link do perfil.
+                
+                ⚠️ Sempre inclua o link no formato Markdown: [Ver perfil](URL).
+                Use Markdown para formatar em **negrito** e listas numeradas.
+                
+                %s
+                """.formatted(listaPrestadores, mensagemCliente, destaque);
 
             // Chamada à IA
             Map<String, Object> body = Map.of(
@@ -107,7 +149,7 @@ public class GroqService {
                 return "⚠️ Não foi possível obter resposta da IA no momento.";
             }
 
-            var choices = (java.util.List<Map<String, Object>>) response.get("choices");
+            var choices = (List<Map<String, Object>>) response.get("choices");
             var message = (Map<String, Object>) choices.get(0).get("message");
             return (String) message.get("content");
 

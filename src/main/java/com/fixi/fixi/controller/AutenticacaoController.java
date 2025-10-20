@@ -9,6 +9,7 @@ import com.fixi.fixi.dto.response.PrestadorResponseDTO;
 import com.fixi.fixi.dto.response.UsuarioRespostaDTO;
 import com.fixi.fixi.service.AutenticacaoService;
 import com.fixi.fixi.service.PrestadorService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,12 +25,12 @@ public class AutenticacaoController {
     public AutenticacaoController(AutenticacaoService autenticacaoService) {this.autenticacaoService = autenticacaoService;}
 
     @PostMapping("/auth/login/cliente")
-    public LoginResponseDTO<UsuarioRespostaDTO> loginCliente(@RequestBody LoginRequest loginRequest) {
+    public LoginResponseDTO<UsuarioRespostaDTO> loginCliente(@Valid @RequestBody LoginRequest loginRequest) {
         return autenticacaoService.loginCliente(loginRequest);
     }
 
     @PostMapping("/auth/login/prestador")
-    public LoginResponseDTO<PrestadorResponseDTO> loginPrestador(@RequestBody LoginRequest loginRequest) {
+    public LoginResponseDTO<PrestadorResponseDTO> loginPrestador(@Valid @RequestBody LoginRequest loginRequest) {
         return autenticacaoService.loginPrestador(loginRequest);
     }
 
