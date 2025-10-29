@@ -5,6 +5,8 @@ import lombok.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "agendamento")
@@ -44,17 +46,17 @@ public class Agendamento {
     @Column(name = "cancelado_por")
     private String canceladoPor; // valores: "CLIENTE", "PRESTADOR"
 
-    @OneToOne(mappedBy = "agendamento", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    private Avaliacao avaliacao;
+    @OneToMany(mappedBy = "agendamento", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Avaliacao> avaliacoes = new ArrayList<>();
 
     @ManyToOne
     @JoinColumn(name = "categoria_id")
     private Categoria categoria;
 
-    @Column(name= "descricao_servico", nullable = false)
+    @Column(name = "descricao_servico", nullable = false)
     private String descricaoServico;
 
-    @Column(name= "valor_sugerido", nullable = true)
+    @Column(name = "valor_sugerido", nullable = true)
     private Double valorSugerido;
 }
 

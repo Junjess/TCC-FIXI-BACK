@@ -5,10 +5,7 @@ import com.fixi.fixi.dto.response.AvaliacaoResponseDTO;
 import com.fixi.fixi.dto.response.CategoriaDescricaoDTO;
 import com.fixi.fixi.dto.response.PrestadorDetalhesResponseDTO;
 import com.fixi.fixi.dto.response.PrestadorResponseDTO;
-import com.fixi.fixi.model.AvaliacaoPlataforma;
-import com.fixi.fixi.model.Categoria;
-import com.fixi.fixi.model.Prestador;
-import com.fixi.fixi.model.PrestadorCategoria;
+import com.fixi.fixi.model.*;
 import com.fixi.fixi.repository.*;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -138,7 +135,7 @@ public class PrestadorService {
     }
 
     private double calcularMediaAvaliacoes(Long prestadorId) {
-        var avaliacoes = avaliacaoRepository.findByAgendamentoPrestadorId(prestadorId);
+        var avaliacoes = avaliacaoRepository.findByAgendamentoPrestadorIdAndTipo(prestadorId, AvaliacaoTipo.CLIENTE_AVALIA_PRESTADOR);
         return avaliacoes.stream()
                 .mapToDouble(a -> a.getNota() != null ? a.getNota() : 0.0)
                 .average()
@@ -166,7 +163,7 @@ public class PrestadorService {
         double mediaAvaliacao = calcularMediaAvaliacoes(prestador.getId());
 
         // Avaliações (DTO seguro)
-        List<AvaliacaoResponseDTO> avaliacoes = avaliacaoRepository.findByAgendamentoPrestadorId(prestador.getId())
+        List<AvaliacaoResponseDTO> avaliacoes = avaliacaoRepository.findByAgendamentoPrestadorIdAndTipo(prestador.getId(),AvaliacaoTipo.CLIENTE_AVALIA_PRESTADOR)
                 .stream()
                 .map(a -> new AvaliacaoResponseDTO(
                         a.getNota(),

@@ -1,9 +1,6 @@
 package com.fixi.fixi.service;
 
-import com.fixi.fixi.model.Agendamento;
-import com.fixi.fixi.model.Categoria;
-import com.fixi.fixi.model.Prestador;
-import com.fixi.fixi.model.PrestadorCategoria;
+import com.fixi.fixi.model.*;
 import com.fixi.fixi.repository.AgendamentoRepository;
 import com.fixi.fixi.repository.CategoriaRepository;
 import com.fixi.fixi.repository.PrestadorCategoriaRepository;
@@ -73,9 +70,13 @@ public class GroqService {
                 int totalNotas = 0;
 
                 for (Agendamento ag : agendamentos) {
-                    if (ag.getAvaliacao() != null && ag.getAvaliacao().getNota() != null) {
-                        somaNotas += ag.getAvaliacao().getNota();
-                        totalNotas++;
+                    if (ag.getAvaliacoes() == null) continue;
+
+                    for (Avaliacao av : ag.getAvaliacoes()) {
+                        if (av.getTipo() == AvaliacaoTipo.CLIENTE_AVALIA_PRESTADOR && av.getNota() != null) {
+                            somaNotas += av.getNota();
+                            totalNotas++;
+                        }
                     }
                 }
 

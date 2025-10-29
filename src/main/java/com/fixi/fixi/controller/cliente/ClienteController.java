@@ -30,7 +30,7 @@ public class ClienteController {
     ) {
         return clienteRepository.findById(id)
                 .map(cliente -> {
-                    // 🔹 valida se o email já está em uso
+                    // valida se o email já está em uso
                     if (clienteAtualizado.getEmail() != null) {
                         Cliente existente = clienteRepository.findByEmail(clienteAtualizado.getEmail());
                         if (existente != null && !existente.getId().equals(id)) {
@@ -52,7 +52,7 @@ public class ClienteController {
                         cliente.setEstado(clienteAtualizado.getEstado());
                     }
 
-                    // 🔹 só atualiza senha se realmente foi enviada
+                    //  só atualiza senha se realmente foi enviada
                     if (clienteAtualizado.getSenha() != null && !clienteAtualizado.getSenha().isBlank()) {
                         cliente.setSenha(passwordEncoder.encode(clienteAtualizado.getSenha()));
                     }

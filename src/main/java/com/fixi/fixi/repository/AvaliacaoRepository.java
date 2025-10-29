@@ -1,14 +1,16 @@
 package com.fixi.fixi.repository;
 
 import com.fixi.fixi.model.Avaliacao;
+import com.fixi.fixi.model.AvaliacaoTipo;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface AvaliacaoRepository extends JpaRepository<Avaliacao, Long> {
-    // usado para não permitir mais de uma avaliação por agendamento
-    Optional<Avaliacao> findByAgendamentoId(Long agendamentoId);
+    Optional<Avaliacao> findByAgendamentoIdAndTipo(Long agendamentoId, AvaliacaoTipo tipo);
 
-    // usado para listar avaliações de um prestador
-    java.util.List<Avaliacao> findByAgendamentoPrestadorId(Long prestadorId);
+    List<Avaliacao> findByAgendamentoPrestadorIdAndTipo(Long prestadorId, AvaliacaoTipo tipo);
+
+    List<Avaliacao> findByAgendamentoClienteIdAndTipo(Long clienteId, AvaliacaoTipo tipo);
 }

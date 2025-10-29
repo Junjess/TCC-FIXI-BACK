@@ -6,6 +6,7 @@ import com.fixi.fixi.dto.response.CategoriaDescricaoDTO;
 import com.fixi.fixi.dto.response.PrestadorDetalhesResponseDTO;
 import com.fixi.fixi.model.Avaliacao;
 import com.fixi.fixi.model.AvaliacaoPlataforma;
+import com.fixi.fixi.model.AvaliacaoTipo; // ✅ novo import
 import com.fixi.fixi.model.Prestador;
 import com.fixi.fixi.repository.AvaliacaoPlataformaRepository;
 import com.fixi.fixi.repository.AvaliacaoRepository;
@@ -18,7 +19,6 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Base64;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -38,7 +38,7 @@ public class BuscaPrestadoresService {
             String cidade,
             String estado
     ) {
-        // 🔹 Se não veio cidade/estado no request, pega do cliente logado
+        // Se não veio cidade/estado no request, pega do cliente logado
         var cliente = clienteRepository.findById(idCliente)
                 .orElseThrow(() ->
                         new ResponseStatusException(
@@ -63,13 +63,14 @@ public class BuscaPrestadoresService {
                 categoriasVazia
         );
 
-        // 2) Calcula média das avaliações de clientes
+        // 2) Calcula média das avaliações FEITAS PELOS CLIENTES para cada prestador
         return prestadores.stream().map(p -> {
-            List<Avaliacao> avaliacoes = avaliacaoRepository.findByAgendamentoPrestadorId(p.getId());
+            List<Avaliacao> avaliacoesClientes = avaliacaoRepository
+                    .findByAgendamentoPrestadorIdAndTipo(p.getId(), AvaliacaoTipo.CLIENTE_AVALIA_PRESTADOR);
 
-            Double mediaClientes = avaliacoes.isEmpty()
+            Double mediaClientes = avaliacoesClientes.isEmpty()
                     ? 0.0
-                    : avaliacoes.stream()
+                    : avaliacoesClientes.stream()
                     .mapToDouble(Avaliacao::getNota)
                     .average()
                     .orElse(0.0);
@@ -91,7 +92,6 @@ public class BuscaPrestadoresService {
                     .findFirst()
                     .map(AvaliacaoPlataforma::getNotaFinal)
                     .orElse(0.0);
-
 
             return new BuscaPrestadoresRespostaDTO(
                     p.getId(),
@@ -117,9 +117,11 @@ public class BuscaPrestadoresService {
                         )
                 );
 
-        List<Avaliacao> avaliacoes = avaliacaoRepository.findByAgendamentoPrestadorId(prestador.getId());
+        // Apenas avaliações de CLIENTE -> PRESTADOR para exibir no perfil do prestador
+        List<Avaliacao> avaliacoesClientes = avaliacaoRepository
+                .findByAgendamentoPrestadorIdAndTipo(prestador.getId(), AvaliacaoTipo.CLIENTE_AVALIA_PRESTADOR);
 
-        List<AvaliacaoResponseDTO> avaliacoesDTO = avaliacoes.stream()
+        List<AvaliacaoResponseDTO> avaliacoesDTO = avaliacoesClientes.stream()
                 .map(a -> new AvaliacaoResponseDTO(
                         a.getNota(),
                         a.getAgendamento().getCliente().getNome(),
@@ -127,9 +129,9 @@ public class BuscaPrestadoresService {
                 ))
                 .toList();
 
-        Double mediaClientes = avaliacoes.isEmpty()
+        Double mediaClientes = avaliacoesClientes.isEmpty()
                 ? 0.0
-                : avaliacoes.stream()
+                : avaliacoesClientes.stream()
                 .mapToDouble(Avaliacao::getNota)
                 .average()
                 .orElse(0.0);

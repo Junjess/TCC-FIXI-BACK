@@ -1,9 +1,6 @@
 package com.fixi.fixi.repository;
 
-import com.fixi.fixi.model.Agendamento;
-import com.fixi.fixi.model.Periodo;
-import com.fixi.fixi.model.Prestador;
-import com.fixi.fixi.model.StatusAgendamento;
+import com.fixi.fixi.model.*;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -23,12 +20,13 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> 
             from Agendamento a
             join fetch a.prestador p
             join fetch a.cliente c
-            left join fetch a.avaliacao av
+            left join fetch a.avaliacoes av
             left join fetch p.categorias pc
             left join fetch pc.categoria ca
             where c.id = :clienteId
             """)
     List<Agendamento> findHistoricoByClienteId(@Param("clienteId") Long clienteId);
+
 
     /**
      * Lista agendamentos aceitos de um prestador (carregando cliente, categorias e avaliação).
@@ -39,7 +37,7 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> 
             join fetch a.prestador p
             join fetch a.cliente c
             join fetch a.categoria ca
-            left join fetch a.avaliacao av
+            left join fetch a.avaliacoes av
             where p.id = :prestadorId
               and a.status = com.fixi.fixi.model.StatusAgendamento.ACEITO
             """)
@@ -96,7 +94,7 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> 
     long countByPrestadorAndStatus(@Param("prestador") Prestador prestador,
                                    @Param("status") StatusAgendamento status);
 
-    @Query("SELECT av.descricao FROM Agendamento a JOIN a.avaliacao av WHERE a.prestador.id = :prestadorId AND av.descricao IS NOT NULL")
+    @Query("SELECT av.descricao FROM Agendamento a JOIN a.avaliacoes av WHERE a.prestador.id = :prestadorId AND av.descricao IS NOT NULL")
     List<String> findComentariosByPrestador(@Param("prestadorId") Long prestadorId);
 
     @Query("SELECT COUNT(a) FROM Agendamento a WHERE a.prestador.id = :idPrestador AND a.status = 'PENDENTE'")

@@ -43,7 +43,7 @@ public class AgendamentoService {
     public List<AgendamentoRespostaDTO> listarPorCliente(Long clienteId) {
         return agendamentoRepository.findHistoricoByClienteId(clienteId)
                 .stream()
-                .map(this::toDTO)
+                .map(this::toDTOComParidade)
                 .toList();
     }
 
@@ -182,7 +182,7 @@ public class AgendamentoService {
     public List<AgendamentoRespostaDTO> listarPorPrestador(Long prestadorId, LocalDate from, LocalDate to) {
         return agendamentoRepository.findByPrestadorIdAndDataAgendamentoBetween(prestadorId, from, to)
                 .stream()
-                .map(this::toDTO)
+                .map(this::toDTOComParidade)
                 .toList();
     }
 
@@ -254,7 +254,7 @@ public class AgendamentoService {
 
         var salvo = agendamentoRepository.save(ag);
 
-        return toDTO(salvo);
+        return toDTOComParidade(salvo);
     }
 
     /**
@@ -264,56 +264,77 @@ public class AgendamentoService {
     public List<AgendamentoRespostaDTO> listarAceitosPorPrestador(Long prestadorId) {
         return agendamentoRepository.findAceitosByPrestadorId(prestadorId)
                 .stream()
-                .map(this::toDTO)
+                .map(this::toDTOComParidade)
                 .toList();
     }
 
-    /**
-     * Converte Agendamento → DTO
-     */
-    private AgendamentoRespostaDTO toDTO(Agendamento agendamento) {
-        AgendamentoRespostaDTO dto = new AgendamentoRespostaDTO();
-        dto.setIdAgendamento(agendamento.getId());
+    private AgendamentoRespostaDTO toDTOComParidade(Agendamento ag) {
+        var dto = new AgendamentoRespostaDTO();
+        dto.setIdAgendamento(ag.getId());
 
         // Prestador
-        dto.setIdPrestador(agendamento.getPrestador().getId());
-        dto.setNomePrestador(agendamento.getPrestador().getNome());
-        dto.setTelefonePrestador(agendamento.getPrestador().getTelefone());
-        dto.setCidadePrestador(agendamento.getPrestador().getCidade());
-        dto.setEstadoPrestador(agendamento.getPrestador().getEstado());
-
-        if (agendamento.getPrestador().getFoto() != null) {
-            dto.setFotoPrestador(Base64.getEncoder().encodeToString(agendamento.getPrestador().getFoto()));
+        var p = ag.getPrestador();
+        dto.setIdPrestador(p.getId());
+        dto.setNomePrestador(p.getNome());
+        dto.setTelefonePrestador(p.getTelefone());
+        dto.setCidadePrestador(p.getCidade());
+        dto.setEstadoPrestador(p.getEstado());
+        if (p.getFoto() != null) {
+            dto.setFotoPrestador(Base64.getEncoder().encodeToString(p.getFoto()));
         }
 
-        // 🔹 Categoria específica do agendamento
-        dto.setCategoriaAgendamento(
-                agendamento.getCategoria() != null ? agendamento.getCategoria().getNome() : null
-        );
+        // Categoria do agendamento (se houver)
+        dto.setCategoriaAgendamento(ag.getCategoria() != null ? ag.getCategoria().getNome() : null);
 
         // Cliente
-        dto.setIdCliente(agendamento.getCliente().getId());
-        dto.setNomeCliente(agendamento.getCliente().getNome());
-        dto.setTelefoneCliente(agendamento.getCliente().getTelefone());
-        dto.setCidadeCliente(agendamento.getCliente().getCidade());
-        dto.setEstadoCliente(agendamento.getCliente().getEstado());
-
-        if (agendamento.getCliente().getFoto() != null) {
-            dto.setFotoCliente(Base64.getEncoder().encodeToString(agendamento.getCliente().getFoto()));
+        var c = ag.getCliente();
+        dto.setIdCliente(c.getId());
+        dto.setNomeCliente(c.getNome());
+        dto.setTelefoneCliente(c.getTelefone());
+        dto.setCidadeCliente(c.getCidade());
+        dto.setEstadoCliente(c.getEstado());
+        if (c.getFoto() != null) {
+            dto.setFotoCliente(Base64.getEncoder().encodeToString(c.getFoto()));
         }
-        dto.setFotoTipoCliente(agendamento.getCliente().getFotoTipo());
-        // Dados do agendamento
-        dto.setData(agendamento.getDataAgendamento());
-        dto.setPeriodo(agendamento.getPeriodo().toString());
-        dto.setStatusAgendamento(agendamento.getStatus().name());
-        dto.setAvaliado(agendamento.getAvaliacao() != null);
-        dto.setNota(agendamento.getAvaliacao() != null ? agendamento.getAvaliacao().getNota() : null);
-        dto.setDescricaoAvaliacao(agendamento.getAvaliacao() != null ? agendamento.getAvaliacao().getDescricao() : null);
-        dto.setCanceladoPor(agendamento.getCanceladoPor());
+        dto.setFotoTipoCliente(c.getFotoTipo());
 
-        // 🔹 Novos campos
-        dto.setDescricaoServico(agendamento.getDescricaoServico());
-        dto.setValorSugerido(agendamento.getValorSugerido());
+        // Agendamento
+        dto.setData(ag.getDataAgendamento());
+        dto.setPeriodo(ag.getPeriodo().name());
+        dto.setStatusAgendamento(ag.getStatus().name());
+        dto.setCanceladoPor(ag.getCanceladoPor());
+
+        // novos
+        dto.setDescricaoServico(ag.getDescricaoServico());
+        dto.setValorSugerido(ag.getValorSugerido());
+
+        // ===== regras de avaliação =====
+        var clienteParaPrestador = ag.getAvaliacoes().stream()
+                .filter(v -> v.getTipo() == AvaliacaoTipo.CLIENTE_AVALIA_PRESTADOR)
+                .findFirst().orElse(null);
+
+        var prestadorParaCliente = ag.getAvaliacoes().stream()
+                .filter(v -> v.getTipo() == AvaliacaoTipo.PRESTADOR_AVALIA_CLIENTE)
+                .findFirst().orElse(null);
+
+        boolean clienteFez = (clienteParaPrestador != null);
+        boolean prestadorFez = (prestadorParaCliente != null);
+        boolean ambas = clienteFez && prestadorFez;
+
+        dto.setAvaliacaoClienteFeita(clienteFez);
+        dto.setAvaliacaoPrestadorFeita(prestadorFez);
+
+        if (ambas) {
+            dto.setNotaAvaliacaoPrestador(clienteParaPrestador.getNota());
+            dto.setComentarioAvaliacaoPrestador(clienteParaPrestador.getDescricao());
+            dto.setNotaAvaliacaoCliente(prestadorParaCliente.getNota());
+            dto.setComentarioAvaliacaoCliente(prestadorParaCliente.getDescricao());
+        } else {
+            dto.setNotaAvaliacaoPrestador(null);
+            dto.setComentarioAvaliacaoPrestador(null);
+            dto.setNotaAvaliacaoCliente(null);
+            dto.setComentarioAvaliacaoCliente(null);
+        }
 
         return dto;
     }
