@@ -13,10 +13,22 @@ public class CorsConfig {
         return new WebMvcConfigurer() {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
-                registry.addMapping("/**") // aplica em todos os endpoints
-                        .allowedOrigins("http://localhost:3000") // libera o front local
-                        .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS") // libera métodos HTTP
-                        .allowedHeaders("*"); // permite todos os headers
+                registry.addMapping("/**")
+                        .allowedOriginPatterns(
+                                // Ambiente local
+                                "http://localhost:3000",
+                                // Front hospedado no Vercel
+                                "https://*.vercel.app",
+                                // Back hospedado no Render
+                                "https://*.onrender.com",
+                                // Túnel temporário (opcional, só se ainda usar)
+                                "https://*.ngrok-free.app",
+                                "https://*.loca.lt"
+                        )
+                        .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                        .allowedHeaders("*")
+                        .exposedHeaders("Authorization")
+                        .allowCredentials(true);
             }
         };
     }
