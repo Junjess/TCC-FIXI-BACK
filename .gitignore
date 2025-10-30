@@ -34,5 +34,4 @@ build/
 
 #Não enviar pro git
 **/application-local.properties
-**/application.properties
 
