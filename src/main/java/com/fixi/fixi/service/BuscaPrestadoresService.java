@@ -29,7 +29,6 @@ public class BuscaPrestadoresService {
     private final BuscaPrestadoresRepository buscaRepo;
     private final AvaliacaoPlataformaRepository avaliacaoPlataformaRepository;
     private final AvaliacaoRepository avaliacaoRepository;
-    private final AvaliacaoPlataformaService avaliacaoPlataformaService;
 
     public List<BuscaPrestadoresRespostaDTO> listarPrestadoresFiltrados(
             Long idCliente,

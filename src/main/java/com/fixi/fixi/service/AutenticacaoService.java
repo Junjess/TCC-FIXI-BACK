@@ -39,7 +39,7 @@ public class AutenticacaoService {
     private CategoriaRepository categoriaRepository;
 
     @Autowired
-    private ViaCepService viaCepService; // serviço para buscar cidade/estado pelo CEP
+    private ViaCepService viaCepService;
 
     @Autowired
     private PrestadorCategoriaRepository prestadorCategoriaRepository;

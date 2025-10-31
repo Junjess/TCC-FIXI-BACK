@@ -58,7 +58,7 @@ public class AgendamentoService {
             Prestador prestador = agendamento.getPrestador();
             if (prestador != null) {
                 System.out.println("📧 Cliente cancelou → enviar e-mail para o prestador");
-                enviarEmailPrestador(prestador, agendamento);
+                //enviarEmailPrestador(prestador, agendamento);
             }
         } else {
             throw new ResponseStatusException(
@@ -79,7 +79,7 @@ public class AgendamentoService {
             Cliente cliente = agendamento.getCliente();
             if (cliente != null) {
                 System.out.println("📧 Prestador cancelou → enviar e-mail para o cliente");
-                enviarEmailCliente(cliente, agendamento);
+                //enviarEmailCliente(cliente, agendamento);
             }
         } else {
             throw new ResponseStatusException(
@@ -362,8 +362,8 @@ public class AgendamentoService {
         Cliente cliente = agendamento.getCliente();
         Prestador prestador = agendamento.getPrestador();
 
-        enviarEmailAceiteCliente(cliente, prestador, agendamento);
-        enviarEmailAceitePrestador(prestador, cliente, agendamento);
+        //enviarEmailAceiteCliente(cliente, prestador, agendamento);
+        //enviarEmailAceitePrestador(prestador, cliente, agendamento);
     }
 
     /**
@@ -386,7 +386,7 @@ public class AgendamentoService {
         agendamento.setStatus(StatusAgendamento.NEGADO);
         agendamentoRepository.save(agendamento);
 
-        enviarEmailAgendamentoRecusadoCliente(agendamento.getCliente(), agendamento);
+        //enviarEmailAgendamentoRecusadoCliente(agendamento.getCliente(), agendamento);
     }
 
     /**
@@ -432,8 +432,8 @@ public class AgendamentoService {
                 ag.setStatus(StatusAgendamento.EXPIRADO);
                 agendamentoRepository.save(ag);
 
-                enviarEmailExpiradoCliente(ag.getCliente(), ag);
-                enviarEmailExpiradoPrestador(ag.getPrestador(), ag);
+                //enviarEmailExpiradoCliente(ag.getCliente(), ag);
+                //enviarEmailExpiradoPrestador(ag.getPrestador(), ag);
             }
         }
     }
