@@ -94,7 +94,7 @@ public class GroqService {
 
             // Monta lista de prestadores
             String listaPrestadores = prestadorCategorias.stream()
-                    .map(pc -> String.format("%s (%s) → [Ver perfil](http://localhost:3000/prestador/%d)",
+                    .map(pc -> String.format("%s (%s) → [Ver perfil](https://tcc-fixi-front.vercel.app/prestador/%d)",
                             pc.getPrestador().getNome(),
                             categoriaNome,
                             pc.getPrestador().getId()
@@ -105,7 +105,7 @@ public class GroqService {
             String destaque = """
                 ⭐ **Melhor avaliado nesta categoria:** %s  
                 Média de avaliações: %.1f ⭐  
-                [Ver perfil](http://localhost:3000/prestador/%d)
+                [Ver perfil](https://tcc-fixi-front.vercel.app/prestador/%d)
                 """.formatted(melhorPrestador.getNome(), melhorMedia, melhorPrestador.getId());
 
             // Prompt final
