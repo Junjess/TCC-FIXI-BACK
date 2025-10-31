@@ -31,20 +31,25 @@ public class SecurityConfig {
                 .formLogin(form -> form.disable())
                 .httpBasic(basic -> basic.disable())
 
+//                .authorizeHttpRequests(auth -> auth
+//                        // Libera preflight CORS
+//                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+//
+//                        // 🔓 ENDPOINTS PÚBLICOS
+//                        .requestMatchers(HttpMethod.POST, "/auth/cadastro/**").permitAll()
+//                        .requestMatchers("/auth/login").permitAll()
+//                        .requestMatchers("/actuator/health", "/actuator/info").permitAll()
+//                        // se usa OpenAPI/Swagger:
+//                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+//
+//                        // 🔐 DEMAIS ROTAS
+//                        .anyRequest().authenticated()
+//                );
+
                 .authorizeHttpRequests(auth -> auth
-                        // Libera preflight CORS
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-
-                        // 🔓 ENDPOINTS PÚBLICOS
-                        .requestMatchers(HttpMethod.POST, "/auth/cadastro/**").permitAll()
-                        .requestMatchers("/auth/login").permitAll()
-                        .requestMatchers("/actuator/health", "/actuator/info").permitAll()
-                        // se usa OpenAPI/Swagger:
-                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-
-                        // 🔐 DEMAIS ROTAS
-                        .anyRequest().authenticated()
+                        .anyRequest().permitAll()
                 );
+
 
         // Se você tiver um filtro JWT, registre aqui:
         // http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
