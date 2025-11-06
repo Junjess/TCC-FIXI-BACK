@@ -6,26 +6,25 @@ import com.fixi.fixi.dto.response.CategoriaDescricaoDTO;
 import com.fixi.fixi.dto.response.PrestadorDetalhesResponseDTO;
 import com.fixi.fixi.model.Avaliacao;
 import com.fixi.fixi.model.AvaliacaoPlataforma;
-import com.fixi.fixi.model.AvaliacaoTipo; // ✅ novo import
+import com.fixi.fixi.model.AvaliacaoTipo;
 import com.fixi.fixi.model.Prestador;
 import com.fixi.fixi.repository.AvaliacaoPlataformaRepository;
 import com.fixi.fixi.repository.AvaliacaoRepository;
 import com.fixi.fixi.repository.BuscaPrestadoresRepository;
-import com.fixi.fixi.repository.ClienteRepository;
+// ❌ import do ClienteRepository e ResponseStatusException não são mais necessários
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Base64;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class BuscaPrestadoresService {
 
-    private final ClienteRepository clienteRepository;
     private final BuscaPrestadoresRepository buscaRepo;
     private final AvaliacaoPlataformaRepository avaliacaoPlataformaRepository;
     private final AvaliacaoRepository avaliacaoRepository;
@@ -33,44 +32,35 @@ public class BuscaPrestadoresService {
     public List<BuscaPrestadoresRespostaDTO> listarPrestadoresFiltrados(
             Long idCliente,
             String q,
-            List<Long> categoriasIds,
+            String categoriasCsv,
             String cidade,
             String estado
     ) {
-        // Se não veio cidade/estado no request, pega do cliente logado
-        var cliente = clienteRepository.findById(idCliente)
-                .orElseThrow(() ->
-                        new ResponseStatusException(
-                                HttpStatus.NOT_FOUND,
-                                "Cliente não encontrado."
-                        )
-                );
+        String qNorm = normalize(q);
+        String cidadeNorm = normalize(cidade);
+        String estadoNorm = normalizeUF(estado);
 
-        String cidadeFiltro = (cidade != null && !cidade.isBlank()) ? cidade : cliente.getCidade();
-        String estadoFiltro = (estado != null && !estado.isBlank()) ? estado : cliente.getEstado();
-
+        List<Long> categoriasIds = parseCategorias(categoriasCsv);
         boolean categoriasVazia = (categoriasIds == null || categoriasIds.isEmpty());
-        List<Long> categoriasParam = categoriasVazia ? List.of(-1L) : categoriasIds;
-        String qNorm = (q == null || q.isBlank()) ? null : q.trim();
 
-        // 1) Busca apenas os prestadores filtrados (sem média)
         List<Prestador> prestadores = buscaRepo.findFiltradosSemMedia(
-                cidadeFiltro,
-                estadoFiltro,
+                cidadeNorm,
+                estadoNorm,
                 qNorm,
-                categoriasParam,
+                categoriasVazia ? List.of(-1L) : categoriasIds, // evita IN () quando vazio
                 categoriasVazia
         );
 
-        // 2) Calcula média das avaliações FEITAS PELOS CLIENTES para cada prestador
         return prestadores.stream().map(p -> {
-            List<Avaliacao> avaliacoesClientes = avaliacaoRepository
+            // média CLIENTE -> PRESTADOR
+            var avaliacoesClientes = avaliacaoRepository
                     .findByAgendamentoPrestadorIdAndTipo(p.getId(), AvaliacaoTipo.CLIENTE_AVALIA_PRESTADOR);
 
-            Double mediaClientes = avaliacoesClientes.isEmpty()
+            double mediaClientes = avaliacoesClientes.isEmpty()
                     ? 0.0
                     : avaliacoesClientes.stream()
-                    .mapToDouble(Avaliacao::getNota)
+                    .map(a -> Optional.ofNullable(a.getNota()).orElse(0.0))
+                    .mapToDouble(Double::doubleValue)
                     .average()
                     .orElse(0.0);
 
@@ -108,19 +98,13 @@ public class BuscaPrestadoresService {
     }
 
     public PrestadorDetalhesResponseDTO buscarPrestadorPorId(Long id) {
-        Prestador prestador = buscaRepo.findByIdFetchCategorias(id)
-                .orElseThrow(() ->
-                        new ResponseStatusException(
-                                HttpStatus.NOT_FOUND,
-                                "Prestador não encontrado."
-                        )
-                );
+        var prestador = buscaRepo.findByIdFetchCategorias(id)
+                .orElseThrow(() -> new RuntimeException("Prestador não encontrado.")); // mantenha sua exceção se preferir
 
-        // Apenas avaliações de CLIENTE -> PRESTADOR para exibir no perfil do prestador
-        List<Avaliacao> avaliacoesClientes = avaliacaoRepository
+        var avaliacoesClientes = avaliacaoRepository
                 .findByAgendamentoPrestadorIdAndTipo(prestador.getId(), AvaliacaoTipo.CLIENTE_AVALIA_PRESTADOR);
 
-        List<AvaliacaoResponseDTO> avaliacoesDTO = avaliacoesClientes.stream()
+        var avaliacoesDTO = avaliacoesClientes.stream()
                 .map(a -> new AvaliacaoResponseDTO(
                         a.getNota(),
                         a.getAgendamento().getCliente().getNome(),
@@ -128,12 +112,9 @@ public class BuscaPrestadoresService {
                 ))
                 .toList();
 
-        Double mediaClientes = avaliacoesClientes.isEmpty()
+        double mediaClientes = avaliacoesClientes.isEmpty()
                 ? 0.0
-                : avaliacoesClientes.stream()
-                .mapToDouble(Avaliacao::getNota)
-                .average()
-                .orElse(0.0);
+                : avaliacoesClientes.stream().mapToDouble(a -> a.getNota() != null ? a.getNota() : 0.0).average().orElse(0.0);
 
         var categoriasDTO = prestador.getCategorias().stream()
                 .map(pc -> new CategoriaDescricaoDTO(
@@ -166,5 +147,22 @@ public class BuscaPrestadoresService {
                 notaPlataforma,
                 prestador.getSobre()
         );
+    }
+
+    // helpers
+    private String normalize(String v) {
+        return (v == null || v.isBlank()) ? null : v.trim();
+    }
+    private String normalizeUF(String v) {
+        return (v == null || v.isBlank()) ? null : v.trim().toUpperCase();
+    }
+    private List<Long> parseCategorias(String csv) {
+        if (csv == null || csv.isBlank()) return null;
+        return Arrays.stream(csv.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .map(Long::valueOf)
+                .distinct()
+                .toList();
     }
 }

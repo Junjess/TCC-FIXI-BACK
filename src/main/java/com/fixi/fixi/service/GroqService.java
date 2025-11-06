@@ -53,10 +53,8 @@ public class GroqService {
         if (resposta == null) return "FORA_DO_ESCOPO";
         String cat = resposta.trim();
 
-        // Exatamente igual?
         if (CATEGORIAS_FIXI.contains(cat)) return cat;
 
-        // Normaliza capitalização simples
         String catTitle = Arrays.stream(cat.split("\\s+"))
                 .filter(s -> !s.isBlank())
                 .map(s -> s.substring(0,1).toUpperCase() + (s.length() > 1 ? s.substring(1).toLowerCase() : ""))

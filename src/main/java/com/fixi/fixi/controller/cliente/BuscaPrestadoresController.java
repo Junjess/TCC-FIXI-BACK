@@ -25,11 +25,11 @@ public class BuscaPrestadoresController {
     public List<BuscaPrestadoresRespostaDTO> listarPrestadores(
             @PathVariable Long idCliente,
             @RequestParam(required = false, name = "q") String q,
-            @RequestParam(required = false, name = "categorias") List<Long> categoriasIds,
+            @RequestParam(required = false, name = "categorias") String categoriasCsv,
             @RequestParam(required = false, name = "cidade") String cidade,
             @RequestParam(required = false, name = "estado") String estado
     ) {
-        return buscarService.listarPrestadoresFiltrados(idCliente, q, categoriasIds, cidade, estado);
+        return buscarService.listarPrestadoresFiltrados(idCliente, q, categoriasCsv, cidade, estado);
     }
 
     @GetMapping("/{id}/detalhes")
