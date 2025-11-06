@@ -43,7 +43,7 @@ public class GroqService {
 
     private Intencao detectarIntencao(String texto) {
         if (texto == null) return Intencao.OUTRO;
-        String t = texto.toLowerCase();
+        String t = texto.toLowerCase().trim();
 
         String[] termosEmergencia = {
                 "incêndio", "fogo", "choque elétrico", "explosão", "vazamento de gás",
@@ -59,8 +59,15 @@ public class GroqService {
                 "pode me ajudar", "pode ajudar", "ajuda por favor", "ajuda pfv",
                 "poderia me ajudar", "socorro", "help"
         };
+        boolean temAjudaGeral = false;
         for (String k : termosAjudaGeral) {
-            if (t.contains(k)) return Intencao.AJUDA_GERAL;
+            if (t.contains(k)) { temAjudaGeral = true; break; }
+        }
+
+        if (temAjudaGeral) {
+            if (!temPistasDomesticas(t) && t.length() <= 40) {
+                return Intencao.AJUDA_GERAL;
+            }
         }
 
         return Intencao.OUTRO;
@@ -87,13 +94,14 @@ public class GroqService {
         String t = texto.toLowerCase();
         String[] pistas = {
                 "chuveiro", "tomada", "disjuntor", "lâmpada", "fio", "curto",
-                "cano", "vazamento", "ralo", "torneira", "esgoto",
+                "cano", "vazamento", "ralo", "torneira", "esgoto", "pia",
                 "parede", "piso", "azulejo", "infiltração",
                 "grama", "jardim", "quintal",
                 "limpeza", "faxina",
                 "roteador", "wi-fi", "wifi", "internet", "computador", "pc",
                 "unha", "manicure",
-                "aula", "professor", "reforço"
+                "aula", "professor", "reforço",
+                "banheiro", "cozinha", "quarto", "lavanderia"
         };
         for (String p : pistas) {
             if (t.contains(p)) return true;
@@ -107,14 +115,12 @@ public class GroqService {
             if (intencao == Intencao.EMERGENCIA) {
                 return respostaEmergencia();
             }
-            if (intencao == Intencao.AJUDA_GERAL) {
-                return respostaEmpaticaPadrao();
-            }
 
             String categoriaNome = classificarCategoria(mensagemCliente).trim();
 
             if ("FORA_DO_ESCOPO".equalsIgnoreCase(categoriaNome)) {
-                if (temPistasDomesticas(mensagemCliente)) {
+                // Só agora consideramos a intenção de ajuda genérica
+                if (intencao == Intencao.AJUDA_GERAL || temPistasDomesticas(mensagemCliente)) {
                     return respostaEmpaticaPadrao();
                 }
                 return "Humm, isso parece estar fora dos serviços que a FIXI oferece no momento. " +
