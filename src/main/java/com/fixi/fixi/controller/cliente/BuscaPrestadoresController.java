@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@CrossOrigin(origins = "http://localhost:3000")
 @RequestMapping("/prestadores")
 public class BuscaPrestadoresController {
 
@@ -20,7 +19,6 @@ public class BuscaPrestadoresController {
         this.buscarService = buscarService;
     }
 
-    // GET /prestadores/{idCliente}?q=xxx&categorias=1,2&cidade=Florianópolis&estado=SC
     @GetMapping("/{idCliente}")
     public List<BuscaPrestadoresRespostaDTO> listarPrestadores(
             @PathVariable Long idCliente,
