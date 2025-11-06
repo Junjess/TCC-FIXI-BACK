@@ -185,7 +185,6 @@ public class GroqService {
 
                 POLÍTICA DE NÃO INVENTAR (obrigatório):
                 - Não invente categorias, links, diagnósticos definitivos, marcas/modelos, disponibilidade, prazos ou valores.
-                - Se faltar informação, peça de forma objetiva (ex.: CEP/bairro/cidade, ambiente, marca/modelo, fotos).
                 - Se pedirem preço/orçamento, explique que o valor depende da avaliação do prestador e sugira abrir um agendamento pelo perfil. Não forneça qualquer estimativa.
 
                 ESTILO (obrigatório):
@@ -227,7 +226,7 @@ public class GroqService {
 
                 Observações finais:
                 - Nunca forneça preços/prazos. Oriente o cliente a solicitar orçamento pelo perfil do profissional.
-                - Se faltar contexto essencial, peça CEP/bairro/cidade, ambiente (cozinha/banheiro/quarto), marca/modelo (quando aplicável) e fotos apenas se ajudarem de verdade.
+                - Se faltar contexto essencial, peça por mais informações. 
                 """.formatted(
                     listaPrestadores,
                     mensagemCliente,
@@ -264,6 +263,7 @@ public class GroqService {
             return "⚠️ Erro ao consultar a IA.";
         }
     }
+
     private String classificarCategoria(String mensagemCliente) {
         String promptCategoria = """
                 Você classifica pedidos de serviços domésticos em UMA das categorias abaixo (responda o nome EXATO da lista):
