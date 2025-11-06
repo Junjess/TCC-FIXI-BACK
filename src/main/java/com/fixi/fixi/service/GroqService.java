@@ -8,9 +8,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -34,6 +32,41 @@ public class GroqService {
         this.prestadorCategoriaRepository = prestadorCategoriaRepository;
     }
 
+    private static final Set<String> CATEGORIAS_FIXI = Set.of(
+            "Eletricista",
+            "Encanador",
+            "Pedreiro",
+            "Jardineiro",
+            "Cozinheiro Privado",
+            "Babá",
+            "Motorista",
+            "Dog Walker",
+            "Faxineiro",
+            "Professor Particular",
+            "Manicure/Pedicure",
+            "Assistente Virtual",
+            "Fotógrafo",
+            "Consultor de TI"
+    );
+
+    private String normalizarCategoria(String resposta) {
+        if (resposta == null) return "FORA_DO_ESCOPO";
+        String cat = resposta.trim();
+
+        // Exatamente igual?
+        if (CATEGORIAS_FIXI.contains(cat)) return cat;
+
+        // Normaliza capitalização simples
+        String catTitle = Arrays.stream(cat.split("\\s+"))
+                .filter(s -> !s.isBlank())
+                .map(s -> s.substring(0,1).toUpperCase() + (s.length() > 1 ? s.substring(1).toLowerCase() : ""))
+                .reduce((a,b) -> a + " " + b)
+                .orElse(cat);
+
+        if (CATEGORIAS_FIXI.contains(catTitle)) return catTitle;
+
+        return "FORA_DO_ESCOPO";
+    }
 
     enum Intencao {
         AJUDA_GERAL,
@@ -119,7 +152,6 @@ public class GroqService {
             String categoriaNome = classificarCategoria(mensagemCliente).trim();
 
             if ("FORA_DO_ESCOPO".equalsIgnoreCase(categoriaNome)) {
-                // Só agora consideramos a intenção de ajuda genérica
                 if (intencao == Intencao.AJUDA_GERAL || temPistasDomesticas(mensagemCliente)) {
                     return respostaEmpaticaPadrao();
                 }
@@ -232,7 +264,7 @@ public class GroqService {
 
                 Observações finais:
                 - Nunca forneça preços/prazos. Oriente o cliente a solicitar orçamento pelo perfil do profissional.
-                - Se faltar contexto essencial, peça por mais informações. 
+                - Se faltar contexto essencial, peça por mais informações.
                 """.formatted(
                     listaPrestadores,
                     mensagemCliente,
@@ -272,46 +304,34 @@ public class GroqService {
 
     private String classificarCategoria(String mensagemCliente) {
         String promptCategoria = """
-                Você classifica pedidos de serviços domésticos em UMA das categorias abaixo (responda o nome EXATO da lista):
-                - Eletricista
-                - Encanador
-                - Pedreiro
-                - Jardineiro
-                - Cozinheiro Privado
-                - Babá
-                - Motorista
-                - Dog Walker
-                - Faxineiro
-                - Professor Particular
-                - Manicure/Pedicure
-                - Assistente Virtual
-                - Fotógrafo
-                - Consultor de TI
+            Classifique o pedido do cliente em UMA das categorias abaixo.
+            Responda EXATAMENTE com UM dos nomes da lista ou com FORA_DO_ESCOPO.
+            Não escreva explicações, frases adicionais ou comentários.
 
-                Regras:
-                1) Se a mensagem for claramente sobre um desses serviços, responda apenas o nome exato da categoria.
-                2) Se a mensagem for AMBIGUA mas cita algo do lar (ex.: “chuveiro não liga”), escolha a categoria mais provável.
-                3) Se for genérica tipo “preciso de ajuda” sem pistas, NÃO classifique aqui (isso já foi tratado antes).
-                4) Se não tiver relação com nenhum serviço, responda exatamente: FORA_DO_ESCOPO.
+            Categorias:
+            - Eletricista
+            - Encanador
+            - Pedreiro
+            - Jardineiro
+            - Cozinheiro Privado
+            - Babá
+            - Motorista
+            - Dog Walker
+            - Faxineiro
+            - Professor Particular
+            - Manicure/Pedicure
+            - Assistente Virtual
+            - Fotógrafo
+            - Consultor de TI
 
-                Exemplos:
-                - "Tomadas estão dando choque" -> Eletricista
-                - "Cano estourou no banheiro" -> Encanador
-                - "Parede com infiltração" -> Pedreiro
-                - "Grama do quintal alta" -> Jardineiro
-                - "Preciso de alguém para cozinhar almoço" -> Cozinheiro Privado
-                - "Cuidar do meu filho à tarde" -> Babá
-                - "Levar minha família ao aeroporto" -> Motorista
-                - "Passear com meu cachorro" -> Dog Walker
-                - "Limpar apartamento amanhã" -> Faxineiro
-                - "Aulas de matemática" -> Professor Particular
-                - "Fazer unhas e pés" -> Manicure/Pedicure
-                - "Organizar planilhas e e-mails" -> Assistente Virtual
-                - "Fotos de aniversário" -> Fotógrafo
-                - "Wi-Fi cai/roteador/configuração de PC" -> Consultor de TI
+            Regras:
+            - Se for claramente uma dessas, responda apenas o nome exato.
+            - Se for genérica tipo “preciso de ajuda” sem pistas, responda: FORA_DO_ESCOPO.
+            - Se não tiver relação, responda: FORA_DO_ESCOPO.
+            - NÃO escreva mais nada além do nome da categoria ou FORA_DO_ESCOPO.
 
-                Pedido do cliente: "%s"
-                """.formatted(mensagemCliente);
+            Pedido do cliente: "%s"
+            """.formatted(mensagemCliente);
 
         Map<String, Object> body = Map.of(
                 "model", "llama-3.3-70b-versatile",
@@ -319,7 +339,8 @@ public class GroqService {
                         Map.of("role", "system", "content", "Você é um classificador objetivo e NUNCA inventa categorias."),
                         Map.of("role", "user", "content", promptCategoria)
                 },
-                "temperature", 0.0
+                "temperature", 0.0,
+                "max_tokens", 12
         );
 
         Map<String, Object> response = webClient.post()
@@ -335,7 +356,10 @@ public class GroqService {
 
         var choices = (java.util.List<Map<String, Object>>) response.get("choices");
         var message = (Map<String, Object>) choices.get(0).get("message");
-        return ((String) message.get("content")).trim();
+        String bruto = ((String) message.get("content")).trim();
+
+        // Saneamento final
+        return normalizarCategoria(bruto);
     }
 
     public Double avaliarComentariosPrestador(List<String> comentarios) {
