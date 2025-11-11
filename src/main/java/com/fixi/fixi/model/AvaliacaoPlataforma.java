@@ -41,7 +41,7 @@ public class AvaliacaoPlataforma {
     @Column(name = "nota_final", nullable = false)
     private Double notaFinal;
 
-    // Período de referência (avaliação mensal)
+    // Período de referência
     @Column(name = "periodo_referencia", nullable = false)
     private LocalDate periodoReferencia;
 

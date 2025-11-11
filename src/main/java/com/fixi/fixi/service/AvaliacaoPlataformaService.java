@@ -95,6 +95,8 @@ public class AvaliacaoPlataformaService {
 
     private Double calcularAvaliacaoIa(Prestador prestador) {
         List<String> comentarios = agendamentoRepository.findComentariosByPrestador(prestador.getId());
-        return groqService.avaliarComentariosPrestador(comentarios);
+        Double nota = groqService.avaliarComentariosPrestador(comentarios);
+        if (nota == null || nota.isNaN()) nota = 0.0;
+        return Math.max(0.0, Math.min(5.0, nota));
     }
 }

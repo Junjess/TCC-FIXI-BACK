@@ -31,7 +31,7 @@ public class Avaliacao {
     private Agendamento agendamento;
 
     @Column(nullable = false)
-    private Double nota; // 0 a 5 (ex.: 4.5)
+    private Double nota; // 0 a 5
 
     @Column(nullable = false, length = 1000)
     private String descricao;

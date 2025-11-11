@@ -31,7 +31,6 @@ public class AvaliacaoController {
     private final AvaliacaoService avaliacaoService;
     private final AvaliacaoPlataformaService avaliacaoPlataformaService;
 
-    // Mantém rota antiga: cliente -> prestador
     @PostMapping
     public ResponseEntity<AvaliacaoResponseDTO> salvar(@RequestBody AvaliacaoRequest dto) {
         return ResponseEntity.ok(avaliacaoService.salvarAvaliacao(dto));
@@ -49,15 +48,13 @@ public class AvaliacaoController {
         return ResponseEntity.ok(avaliacaoService.salvarAvaliacaoPrestadorParaCliente(dto));
     }
 
-    // ===================== LISTAR =====================
-
-    // (LEGADO) Avaliações recebidas pelo prestador (clientes avaliaram prestador)
+    //  Avaliações recebidas pelo prestador (clientes avaliaram prestador)
     @GetMapping("/prestador/{id}")
     public ResponseEntity<List<AvaliacaoResponseDTO>> listarPorPrestador(@PathVariable Long id) {
         return ResponseEntity.ok(avaliacaoService.listarAvaliacoesPorPrestador(id));
     }
 
-    // (NOVO) Avaliações recebidas pelo cliente (prestadores avaliaram cliente)
+    // Avaliações recebidas pelo cliente (prestadores avaliaram cliente)
     @GetMapping("/cliente/{id}")
     public ResponseEntity<List<AvaliacaoDirecionalResponseDTO>> listarPorCliente(@PathVariable Long id) {
         return ResponseEntity.ok(avaliacaoService.listarAvaliacoesPorCliente(id));

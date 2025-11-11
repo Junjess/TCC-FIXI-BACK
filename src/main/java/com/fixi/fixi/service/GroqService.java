@@ -222,6 +222,9 @@ public class GroqService {
                 POLÍTICA DE NÃO INVENTAR (obrigatório):
                 - Não invente categorias, links, diagnósticos definitivos, marcas/modelos, disponibilidade, prazos ou valores.
                 - Se pedirem preço/orçamento, explique que o valor depende da avaliação do prestador e sugira abrir um agendamento pelo perfil. Não forneça qualquer estimativa.
+                - Não pergunte se o usuário deseja agendar horário com o prestador.
+                - Não pergunte se o usuário quer um orçamento.
+                
 
                 ESTILO (obrigatório):
                 - Português do Brasil, cordial e direto.
